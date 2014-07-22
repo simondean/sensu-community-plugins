@@ -70,7 +70,9 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
                 if step.has_key? :result
                   case step[:result][:status]
                     when 'undefined', 'pending'
-                      outcome = WARNING
+                      outcome = [outcome, WARNING].max
+                    when 'failing'
+                      outcome = [outcome, CRITICAL].max
                   end
                 end
               end
@@ -84,6 +86,8 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
           ok
         when WARNING
           warning
+        when CRITICAL
+          critical
       end
     end
   end
