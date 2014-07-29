@@ -84,11 +84,11 @@ describe CheckCucumberFeatures, 'run' do
       end
     end
 
-    describe 'when there is a failing step' do
+    describe 'when there is a failed step' do
       report = []
 
       before(:each) do
-        report.push generate_feature(:failing)
+        report.push generate_feature(:failed)
       end
 
       it 'returns critical' do

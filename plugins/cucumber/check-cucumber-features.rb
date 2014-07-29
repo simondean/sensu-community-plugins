@@ -48,7 +48,7 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
   def execute_cucumber_features
     report = `#{config[:command]}`
 
-    {:report => report, :exit_status => $?.exitstatus}
+    {:report => JSON.parse(report, :symbolize_names => true), :exit_status => $?.exitstatus}
   end
 
   def run
@@ -71,7 +71,7 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
                   case step[:result][:status]
                     when 'undefined', 'pending'
                       outcome = [outcome, WARNING].max
-                    when 'failing'
+                    when 'failed'
                       outcome = [outcome, CRITICAL].max
                   end
                 end
@@ -81,6 +81,9 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
         end
       end
 
+      json = {:report => result[:report]}
+      output json
+
       case outcome
         when OK
           ok
@@ -89,6 +92,14 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
         when CRITICAL
           critical
       end
+    end
+  end
+
+  def output(obj=nil)
+    if obj.is_a?(String) || obj.is_a?(Exception)
+      puts obj.to_s
+    elsif obj.is_a?(Hash)
+      puts ::JSON.generate(obj)
     end
   end
 
