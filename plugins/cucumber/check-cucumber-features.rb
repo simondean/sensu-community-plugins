@@ -95,6 +95,27 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
     end
   end
 
+  def generate_check_name_from_scenario(scenario)
+    check_name = scenario[:id].gsub(/\//, '.')
+      .gsub(/[^a-zA-Z0-9\._-]/, '-')
+      .gsub(/^\.+/, '')
+      .gsub(/\.+$/, '')
+      .gsub(/\.+/, '.')
+
+    parts = []
+
+    check_name.split('.').each do |part|
+      part = part.gsub(/^-+/, '')
+        .gsub(/-+$/, '')
+        .gsub(/-+/, '-')
+
+      parts << part unless part.length == 0
+    end
+
+    check_name = parts.join('.')
+    check_name
+  end
+
   def output(obj=nil)
     if obj.is_a?(String) || obj.is_a?(Exception)
       puts obj.to_s
