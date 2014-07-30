@@ -162,7 +162,7 @@ describe CheckCucumberFeatures do
       expect(check_name).to eq('text.text')
     end
 
-    it 'replaces every character (except letters, periods and hyphens) with hyphen' do
+    it 'replaces every character (except letters, periods, hyphens and underscores) with hyphen' do
       id = ''
       (1..254).each {|ascii_code| id += ascii_code.chr}
 
