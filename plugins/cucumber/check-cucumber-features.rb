@@ -35,6 +35,11 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
   #  :short => '-f FEATURES',
   #  :long => '--features FEATURES'
   #
+  option :check_name,
+    :description => "Check name to use in sensu events",
+    :short => '-n CHECK_NAME',
+    :long => '--check-name CHECK_NAME'
+
   option :command,
     :description => "Cucumber command line, including arguments",
     :short => '-c COMMAND',
@@ -55,48 +60,77 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
     #if config[:features].nil?
     #  unknown "No features path specified"
     #else
+    if config[:check_name].nil?
+      unknown "No check name specified"
+      return
+    end
+
     if config[:command].nil?
       unknown "No cucumber command line specified"
-    else
-      result = execute_cucumber_features
+      return
+    end
 
-      outcome = OK
+    result = execute_cucumber_features
 
-      result[:report].each do |feature|
-        if feature.has_key? :elements
-          feature[:elements].each do |element|
-            if element.has_key? :steps
-              element[:steps].each do |step|
-                if step.has_key? :result
-                  case step[:result][:status]
-                    when 'undefined', 'pending'
-                      outcome = [outcome, WARNING].max
-                    when 'failed'
-                      outcome = [outcome, CRITICAL].max
-                  end
+    outcome = OK
+    scenario_count = 0
+
+    result[:report].each do |feature|
+      if feature.has_key? :elements
+        feature[:elements].each do |element|
+          scenario_status = 'passed'
+
+          if element.has_key? :steps
+            element[:steps].each do |step|
+              if step.has_key? :result
+                step_status = step[:result][:status]
+
+                if ['passed'].include? step_status
+                  scenario_status = step_status.to_sym
+                  break
                 end
+                # case step[:result][:status]
+                #   when 'undefined', 'pending'
+                #
+                #   when 'undefined', 'pending'
+                #     outcome = [outcome, WARNING].max
+                #   when 'failed'
+                #     outcome = [outcome, CRITICAL].max
+                # end
               end
             end
           end
+
+          scenario_count += 1
+
+          sensu_event = {
+            :handlers => ['cucumber-scenario'],
+            :name => "#{config[:check_name]}.#{generate_check_name_from_scenario(element)}",
+            :output => '',
+            :status => OK
+          }
+
+          case scenario_status
+            when :passed
+          end
+
+          raise_sensu_event sensu_event
         end
       end
+    end
 
-      json = {:report => result[:report]}
-      output json
-
-      case outcome
-        when OK
-          ok
-        when WARNING
-          warning
-        when CRITICAL
-          critical
-      end
+    case outcome
+      when OK
+        ok "OK: #{scenario_count} #{scenario_count != 1 ? 'scenarios' : 'scenario'}"
+      #when WARNING
+      #  warning
+      #when CRITICAL
+      #  critical
     end
   end
 
   def generate_check_name_from_scenario(scenario)
-    check_name = scenario[:id].gsub(/\//, '.')
+    check_name = scenario[:id].gsub(/;/, '.')
       .gsub(/[^a-zA-Z0-9\._-]/, '-')
       .gsub(/^\.+/, '')
       .gsub(/\.+$/, '')
@@ -114,6 +148,9 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
 
     check_name = parts.join('.')
     check_name
+  end
+
+  def raise_sensu_event(sensu_event)
   end
 
   def output(obj=nil)
