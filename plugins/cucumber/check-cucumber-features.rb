@@ -30,11 +30,6 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
   CRITICAL = 2
   UNKNOWN = 3
 
-  #option :features,
-  #  :description => "Path of Cucumber features",
-  #  :short => '-f FEATURES',
-  #  :long => '--features FEATURES'
-  #
   option :name,
     :description => "Name to use in sensu events",
     :short => '-n NAME',
