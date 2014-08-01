@@ -35,10 +35,15 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
   #  :short => '-f FEATURES',
   #  :long => '--features FEATURES'
   #
-  option :check_name,
-    :description => "Check name to use in sensu events",
-    :short => '-n CHECK_NAME',
-    :long => '--check-name CHECK_NAME'
+  option :name,
+    :description => "Name to use in sensu events",
+    :short => '-n NAME',
+    :long => '--name NAME'
+
+  option :handler,
+    :description => "Handler to use in sensu events",
+    :short => '-h HANDLER',
+    :long => '--handler HANDLER'
 
   option :command,
     :description => "Cucumber command line, including arguments",
@@ -60,8 +65,13 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
     #if config[:features].nil?
     #  unknown "No features path specified"
     #else
-    if config[:check_name].nil?
-      unknown "No check name specified"
+    if config[:name].nil?
+      unknown "No name specified"
+      return
+    end
+
+    if config[:handler].nil?
+      unknown "No handler specified"
       return
     end
 
@@ -104,8 +114,8 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
           scenario_count += 1
 
           sensu_event = {
-            :handlers => ['cucumber-scenario'],
-            :name => "#{config[:check_name]}.#{generate_check_name_from_scenario(element)}",
+            :handlers => [config[:handler]],
+            :name => "#{config[:name]}.#{generate_check_name_from_scenario(element)}",
             :output => '',
             :status => OK
           }
