@@ -95,7 +95,7 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
               if step.has_key? :result
                 step_status = step[:result][:status]
 
-                if ['failed'].include? step_status
+                if ['failed', 'pending', 'undefined'].include? step_status
                   scenario_status = step_status.to_sym
                   break
                 end
@@ -124,6 +124,8 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
               sensu_event[:status] = OK
             when :failed
               sensu_event[:status] = CRITICAL
+              when :pending, :undefined
+              sensu_event[:status] = WARNING
           end
 
           raise_sensu_event sensu_event
