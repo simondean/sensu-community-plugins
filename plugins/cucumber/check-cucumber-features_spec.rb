@@ -9,16 +9,6 @@ describe CheckCucumberFeatures do
   end
 
   describe 'run()' do
-    # it 'returns unknown if there are no features specified' do
-    #   check_cucumber_features.should_receive('unknown').with('No features path specified')
-    #   check_cucumber_features.run
-    # end
-    #
-    # describe 'when features are specified' do
-    # before do
-    #   check_cucumber_features.config[:features] = 'test_assets/features/'
-    # end
-
     it 'returns unknown if no name is specified' do
       check_cucumber_features.should_receive('unknown').with('No name specified')
       check_cucumber_features.run
@@ -148,104 +138,10 @@ describe CheckCucumberFeatures do
             after(:each) do
               check_cucumber_features.run
             end
-          
-          # describe 'when there is an undefined step' do
-          #   report = []
-          #
-          #   before(:each) do
-          #     report.push generate_feature(:undefined)
-          #   end
-          #
-          #   it 'returns warning' do
-          #     check_cucumber_features.should_receive('execute_cucumber_features') do
-          #       {:report => report, :exit_status => 0}
-          #     end
-          #     check_cucumber_features.should_receive('warning').with(no_args)
-          #     check_cucumber_features.run
-          #   end
-          #
-          #   it 'still returns warning if another step is passing' do
-          #     report.push generate_feature(:passed)
-          #     check_cucumber_features.should_receive('execute_cucumber_features') do
-          #       {:report => report, :exit_status => 0}
-          #     end
-          #     check_cucumber_features.should_receive('warning').with(no_args)
-          #     check_cucumber_features.run
-          #   end
-          # end
-          #
-          # describe 'when there is a pending step' do
-          #   report = []
-          #
-          #   before(:each) do
-          #     report.push generate_feature(:pending)
-          #   end
-          #
-          #   it 'returns warning' do
-          #     check_cucumber_features.should_receive('execute_cucumber_features') do
-          #       {:report => report, :exit_status => 0}
-          #     end
-          #     check_cucumber_features.should_receive('warning').with(no_args)
-          #     check_cucumber_features.run
-          #   end
-          #
-          #   it 'still returns warning if another step is passing' do
-          #     report.push generate_feature(:passing)
-          #     check_cucumber_features.should_receive('execute_cucumber_features') do
-          #       {:report => report, :exit_status => 0}
-          #     end
-          #     check_cucumber_features.should_receive('warning').with(no_args)
-          #     check_cucumber_features.run
-          #   end
-          # end
-          #
-          # describe 'when there is a failing step' do
-          #   report = []
-          #
-          #   before(:each) do
-          #     report.push generate_feature(:failed)
-          #   end
-          #
-          #   it 'returns critical' do
-          #     check_cucumber_features.should_receive('execute_cucumber_features') do
-          #       {:report => report, :exit_status => 0}
-          #     end
-          #     check_cucumber_features.should_receive('critical').with(no_args)
-          #     check_cucumber_features.run
-          #   end
-          #
-          #   it 'still returns critical if another step is passing' do
-          #     report.push generate_feature(:passing)
-          #     check_cucumber_features.should_receive('execute_cucumber_features') do
-          #       {:report => report, :exit_status => 0}
-          #     end
-          #     check_cucumber_features.should_receive('critical').with(no_args)
-          #     check_cucumber_features.run
-          #   end
-          #
-          #   it 'still returns critical if another step is undefined' do
-          #     report.push generate_feature(:undefined)
-          #     check_cucumber_features.should_receive('execute_cucumber_features') do
-          #       {:report => report, :exit_status => 0}
-          #     end
-          #     check_cucumber_features.should_receive('critical').with(no_args)
-          #     check_cucumber_features.run
-          #   end
-          #
-          #   it 'still returns critical if another step is pending' do
-          #     report.push generate_feature(:pending)
-          #     check_cucumber_features.should_receive('execute_cucumber_features') do
-          #       {:report => report, :exit_status => 0}
-          #     end
-          #     check_cucumber_features.should_receive('critical').with(no_args)
-          #     check_cucumber_features.run
-          #   end
-          # end
           end
         end
       end
     end
-  #  end
   end
 
   describe 'generate_check_name_from_scenario()' do

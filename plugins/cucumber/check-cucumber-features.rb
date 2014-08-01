@@ -62,9 +62,6 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
   end
 
   def run
-    #if config[:features].nil?
-    #  unknown "No features path specified"
-    #else
     if config[:name].nil?
       unknown "No name specified"
       return
@@ -99,14 +96,6 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
                   scenario_status = step_status.to_sym
                   break
                 end
-                # case step[:result][:status]
-                #   when 'undefined', 'pending'
-                #
-                #   when 'undefined', 'pending'
-                #     outcome = [outcome, WARNING].max
-                #   when 'failed'
-                #     outcome = [outcome, CRITICAL].max
-                # end
               end
             end
           end
@@ -136,10 +125,6 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
     case outcome
       when OK
         ok "OK: #{scenario_count} #{scenario_count != 1 ? 'scenarios' : 'scenario'}"
-      #when WARNING
-      #  warning
-      #when CRITICAL
-      #  critical
     end
   end
 
