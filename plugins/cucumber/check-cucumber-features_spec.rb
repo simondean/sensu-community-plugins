@@ -73,17 +73,17 @@ describe CheckCucumberFeatures do
                 }
                 check_cucumber_features.should_receive('raise_sensu_event').with(sensu_event)
               end
-            end          
+            end
 
             describe 'when there is a passing step followed by a failing step' do
               before(:each) do
                 report << generate_feature(:scenario_statuses => [:passed, :failed], :scenario_id => 'Feature;scenario')
               end
-  
+
               it 'returns ok' do
                 check_cucumber_features.should_receive('ok').with('OK: 1 scenario')
               end
-  
+
               it 'raises a critical event' do
                 sensu_event = {
                   :handlers => ['example-handler'],
@@ -93,7 +93,7 @@ describe CheckCucumberFeatures do
                 }
                 check_cucumber_features.should_receive('raise_sensu_event').with(sensu_event)
               end
-            end          
+            end
 
             describe 'when there is a passing step followed by a pending step' do
               before(:each) do

@@ -147,7 +147,7 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
   def raise_sensu_event(sensu_event)
   end
 
-  def output(obj=nil)
+  def output(obj = nil)
     if obj.is_a?(String) || obj.is_a?(Exception)
       puts obj.to_s
     elsif obj.is_a?(Hash)
