@@ -49,7 +49,7 @@ describe CheckCucumberFeatures do
             check_cucumber_features.config[:command] = 'cucumber-js features/'
           end
 
-          describe 'when cucumber executes and provides a report'
+          describe 'when cucumber executes and provides a report' do
             report = nil
 
             before(:each) do
@@ -63,15 +63,11 @@ describe CheckCucumberFeatures do
               it 'returns ok' do
                 check_cucumber_features.should_receive('ok').with('OK: 0 scenarios')
               end
-
-              after(:each) do
-                check_cucumber_features.run
-              end
             end
 
             describe 'when there is a passing step' do
               before(:each) do
-                report << generate_feature(:scenario_status => :passed, :scenario_id => 'Feature;scenario')
+                report << generate_feature(:scenario_statuses => :passed, :scenario_id => 'Feature;scenario')
               end
 
               it 'returns ok' do
@@ -87,12 +83,32 @@ describe CheckCucumberFeatures do
                 }
                 check_cucumber_features.should_receive('raise_sensu_event').with(sensu_event)
               end
+            end          
 
-              after(:each) do
-                check_cucumber_features.run
+            describe 'when there is a passing step followed by a failing step' do
+              before(:each) do
+                report << generate_feature(:scenario_statuses => [:passed, :failed], :scenario_id => 'Feature;scenario')
               end
+  
+              it 'returns ok' do
+                check_cucumber_features.should_receive('ok').with('OK: 1 scenario')
+              end
+  
+              it 'raises a critical event' do
+                sensu_event = {
+                  :handlers => ['example-handler'],
+                  :name => 'example-name.Feature.scenario',
+                  :output => '',
+                  :status => 2
+                }
+                check_cucumber_features.should_receive('raise_sensu_event').with(sensu_event)
+              end
+            end          
+          
+            after(:each) do
+              check_cucumber_features.run
             end
-
+          
           # describe 'when there is an undefined step' do
           #   report = []
           #
@@ -185,6 +201,7 @@ describe CheckCucumberFeatures do
           #     check_cucumber_features.run
           #   end
           # end
+          end
         end
       end
     end
@@ -328,16 +345,18 @@ def generate_feature(options = {})
         :elements => [
           {
             :id => options[:scenario_id],
-            :steps => [
-              {
-                :result => {
-                  :status => options[:scenario_status].to_s
-                }
-              }
-            ]
+            :steps => []
           }
         ]
       }
+
+  Array(options[:scenario_statuses]).each do |scenario_status|
+    feature[:elements][0][:steps] << {
+      :result => {
+        :status => scenario_status.to_s
+      }
+    }
+  end
 
   feature
 end

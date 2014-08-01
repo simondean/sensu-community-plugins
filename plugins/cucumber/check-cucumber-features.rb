@@ -88,14 +88,14 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
     result[:report].each do |feature|
       if feature.has_key? :elements
         feature[:elements].each do |element|
-          scenario_status = 'passed'
+          scenario_status = :passed
 
           if element.has_key? :steps
             element[:steps].each do |step|
               if step.has_key? :result
                 step_status = step[:result][:status]
 
-                if ['passed'].include? step_status
+                if ['failed'].include? step_status
                   scenario_status = step_status.to_sym
                   break
                 end
@@ -116,12 +116,14 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
           sensu_event = {
             :handlers => [config[:handler]],
             :name => "#{config[:name]}.#{generate_check_name_from_scenario(element)}",
-            :output => '',
-            :status => OK
+            :output => ''
           }
 
           case scenario_status
             when :passed
+              sensu_event[:status] = OK
+            when :failed
+              sensu_event[:status] = CRITICAL
           end
 
           raise_sensu_event sensu_event
