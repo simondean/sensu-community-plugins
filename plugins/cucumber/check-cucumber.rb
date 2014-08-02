@@ -114,7 +114,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
           feature_clone[:elements] = [deep_dup(element)]
           scenario_report = [feature_clone]
 
-          metrics = generate_metrics_from_scenario(element)
+          metrics = generate_metrics_from_scenario(element, scenario_status)
 
           data = {
             :status => scenario_status,
@@ -193,25 +193,28 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     Marshal.load(Marshal.dump(obj))
   end
 
-  def generate_metrics_from_scenario(scenario)
+  def generate_metrics_from_scenario(scenario, scenario_status)
     metrics = []
-    scenario_duration = 0
 
-    if scenario.has_key?(:steps)
-      Array(scenario[:steps]).each.with_index do |step, step_index|
-        if step.has_key?(:result) && step[:result].has_key?(:duration)
-          metrics << {
-            :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.step-#{step_index + 1}.duration",
-            :value => step[:result][:duration]
-          }
-          scenario_duration += step[:result][:duration]
+    if scenario_status == :passed
+      scenario_duration = 0
+
+      if scenario.has_key?(:steps)
+        Array(scenario[:steps]).each.with_index do |step, step_index|
+          if step.has_key?(:result) && step[:result].has_key?(:duration)
+            metrics << {
+              :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.step-#{step_index + 1}.duration",
+              :value => step[:result][:duration]
+            }
+            scenario_duration += step[:result][:duration]
+          end
         end
-      end
 
-      metrics.unshift({
-        :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.duration",
-        :value => scenario_duration
-      })
+        metrics.unshift({
+          :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.duration",
+          :value => scenario_duration
+        })
+      end
     end
 
     metrics
