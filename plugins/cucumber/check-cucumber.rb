@@ -100,10 +100,14 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
             end
           end
 
+          data = {
+            :status => scenario_status
+          }
+
           sensu_event = {
             :handlers => [config[:handler]],
             :name => "#{config[:name]}.#{generate_check_name_from_scenario(element)}",
-            :output => ''
+            :output => data.to_json
           }
 
           case scenario_status
