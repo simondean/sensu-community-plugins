@@ -133,6 +133,25 @@ describe CheckCucumber do
               end
             end
 
+            describe 'when there are multiple features' do
+              before(:each) do
+                report << generate_feature(:feature_index => 0, :scenarios => [{:step_statuses => :passed}])
+                report << generate_feature(:feature_index => 1, :scenarios => [{:step_statuses => :passed}])
+              end
+
+              it 'returns ok' do
+                expect(check_cucumber).to receive('ok').with('OK: 2 scenarios')
+              end
+
+              it 'raises multiple events' do
+                sensu_events = []
+                sensu_events << generate_sensu_event(:status => 0, :feature_index => 0, :scenario_index => 0)
+                sensu_events << generate_sensu_event(:status => 0, :feature_index => 1, :scenario_index => 0)
+                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_events[0]).ordered
+                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_events[1]).ordered
+              end
+            end
+
             after(:each) do
               check_cucumber.run
             end
@@ -283,7 +302,7 @@ def generate_feature(options = {})
 
   Array(options[:scenarios]).each do |scenario_options|
     scenario = {
-      :id => "Feature-0;scenario-#{scenario_index}",
+      :id => "Feature-#{options[:feature_index] || '0'};scenario-#{scenario_index}",
       :steps => []
     }
 
@@ -305,7 +324,7 @@ end
 def generate_sensu_event(options = {})
   sensu_event = {
     :handlers => ['example-handler'],
-    :name => "example-name.Feature-0.scenario-#{options[:scenario_index] || '0'}",
+    :name => "example-name.Feature-#{options[:feature_index] || '0'}.scenario-#{options[:scenario_index] || '0'}",
     :output => '',
     :status => options[:status] || 0
   }
