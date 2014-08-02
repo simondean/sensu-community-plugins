@@ -123,7 +123,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     case outcome
       when OK
-        ok "OK: #{scenario_count} #{scenario_count != 1 ? 'scenarios' : 'scenario'}"
+        ok "#{scenario_count} #{scenario_count != 1 ? 'scenarios' : 'scenario'}"
     end
   end
 
@@ -149,23 +149,12 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   end
 
   def raise_sensu_events(sensu_events)
-    data = ''
-
     sensu_events.each do |sensu_event|
-      data << sensu_event.to_json
-      data << '\n'
-    end
+      data = sensu_event.to_json
 
-    socket = TCPSocket.new '127.0.0.1', 3030
-
-    index = 0
-    length = data.length
-
-    while index < length
-      bytes_sent = socket.send data[index..-1], 0
-      return false if bytes_sent < 0
-
-      index += bytes_sent
+      socket = UDPSocket.new
+      socket.send data, 0, '127.0.0.1', 3030
+      socket.close
     end
   end
 
