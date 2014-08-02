@@ -336,6 +336,16 @@ describe CheckCucumber do
       expect(metrics).to eq(expected_metrics)
     end
 
+    it 'ignores a step with no result' do
+      scenario[:steps] << {}
+      scenario[:steps] << {:result => {:duration => 1.5}}
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario)
+      expected_metrics = [
+        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => "1.5"}
+      ]
+      expect(metrics).to eq(expected_metrics)
+    end
+
     it 'ignores a step with no duration' do
       scenario[:steps] << {:result => {}}
       scenario[:steps] << {:result => {:duration => 1.5}}
