@@ -37,9 +37,14 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :long => '--name NAME'
 
   option :handler,
-    :description => "Handler to use in sensu events",
+    :description => "Handler to use for sensu events",
     :short => '-h HANDLER',
     :long => '--handler HANDLER'
+
+  option :metrics_prefix,
+    :description => "Metrics prefix to use with metric paths in sensu events",
+    :short => '-m METRICS_PREFIX',
+    :long => '--metrics-prefix METRICS_PREFIX'
 
   option :command,
     :description => "Cucumber command line, including arguments",
@@ -65,6 +70,11 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     if config[:handler].nil?
       unknown "No handler specified"
+      return
+    end
+
+    if config[:metrics_prefix].nil?
+      unknown "No metrics prefix specified"
       return
     end
 
@@ -104,14 +114,17 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
           feature_clone[:elements] = [deep_dup(element)]
           scenario_report = [feature_clone]
 
+          metrics = generate_metrics(element)
+
           data = {
             :status => scenario_status,
-            :report => scenario_report
+            :report => scenario_report,
+            :metrics => metrics
           }
 
           sensu_event = {
             :handlers => [config[:handler]],
-            :name => "#{config[:name]}.#{generate_check_name_from_scenario(element)}",
+            :name => "#{config[:name]}.#{generate_name_from_scenario(element)}",
             :output => data.to_json
           }
 
@@ -145,7 +158,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     end
   end
 
-  def generate_check_name_from_scenario(scenario)
+  def generate_name_from_scenario(scenario)
     check_name = scenario[:id].gsub(/;/, '.')
       .gsub(/[^a-zA-Z0-9\._-]/, '-')
       .gsub(/^\.+/, '')
@@ -178,6 +191,38 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
   def deep_dup(obj)
     Marshal.load(Marshal.dump(obj))
+  end
+
+  def generate_metrics(scenario)
+    if scenario_has_durations(scenario)
+      metrics = []
+
+      scenario[:steps].each.with_index do |step, step_index|
+        metrics << {
+          :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.step-#{step_index}.duration",
+          :value => step[:result][:duration].to_s
+        }
+      end
+
+      metrics
+    else
+      []
+    end
+  end
+
+  def scenario_has_durations(scenario)
+    true
+    # if scenario.has_key? :steps
+    #   steps = scenario[:steps]
+    #
+    #   if steps.length > 0
+    #     if steps[0].has_key?(:result) && steps[0][:result].has_key?(:duration)
+    #       return true
+    #     end
+    #   end
+    # end
+    #
+    # false
   end
 
 end
