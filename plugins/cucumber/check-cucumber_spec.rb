@@ -170,7 +170,7 @@ describe CheckCucumber do
     end
   end
 
-  describe 'generate_check_name_from_scenario()' do
+  describe 'generate_name_from_scenario()' do
     it 'returns the scenario id' do
       scenario = {:id => 'text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
@@ -300,6 +300,21 @@ describe CheckCucumber do
       expect(check_name).to eq('text.text')
     end
   end
+
+  describe 'generate_metrics_from_scenario()' do
+    before(:each) do
+      check_cucumber.config[:metrics_prefix] = 'example-metrics-prefix'
+    end
+
+    it 'generates metrics' do
+      scenario = {:id => 'example-scenario-id', :steps => [{:result => {:duration => 0.5}}]}
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario)
+      expected_metrics = [
+        {:path => "example-metrics-prefix.example-scenario-id.step-1.duration", :value => "0.5"}
+      ]
+      expect(metrics).to eq(expected_metrics)
+    end
+  end
 end
 
 def generate_feature(options = {})
@@ -366,7 +381,7 @@ def generate_sensu_event(options = {})
 
   scenario[:steps].each.with_index do |step, step_index|
     metrics << {
-      :path => "example-metrics-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-#{step_index}.duration",
+      :path => "example-metrics-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-#{step_index + 1}.duration",
       :value => step[:result][:duration].to_s
     }
   end
