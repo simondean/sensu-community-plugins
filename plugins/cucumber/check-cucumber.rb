@@ -95,52 +95,54 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     result[:report].each do |feature|
       if feature.has_key? :elements
         feature[:elements].each do |element|
-          scenario_status = :passed
+          if element[:type] == 'scenario'
+            scenario_status = :passed
 
-          if element.has_key? :steps
-            element[:steps].each do |step|
-              if step.has_key? :result
-                step_status = step[:result][:status]
+            if element.has_key? :steps
+              element[:steps].each do |step|
+                if step.has_key? :result
+                  step_status = step[:result][:status]
 
-                if ['failed', 'pending', 'undefined'].include? step_status
-                  scenario_status = step_status.to_sym
-                  break
+                  if ['failed', 'pending', 'undefined'].include? step_status
+                    scenario_status = step_status.to_sym
+                    break
+                  end
                 end
               end
             end
+
+            feature_clone = deep_dup(feature)
+            feature_clone[:elements] = [deep_dup(element)]
+            scenario_report = [feature_clone]
+
+            metrics = generate_metrics_from_scenario(element, scenario_status)
+
+            data = {
+              :status => scenario_status,
+              :report => scenario_report,
+              :metrics => metrics
+            }
+
+            sensu_event = {
+              :handlers => [config[:handler]],
+              :name => "#{config[:name]}.#{generate_name_from_scenario(element)}",
+              :output => data.to_json
+            }
+
+            case scenario_status
+              when :passed
+                sensu_event[:status] = OK
+              when :failed
+                sensu_event[:status] = CRITICAL
+              when :pending, :undefined
+                sensu_event[:status] = WARNING
+            end
+
+            scenario_count += 1
+            status_counts[scenario_status] += 1
+
+            sensu_events << sensu_event
           end
-
-          feature_clone = deep_dup(feature)
-          feature_clone[:elements] = [deep_dup(element)]
-          scenario_report = [feature_clone]
-
-          metrics = generate_metrics_from_scenario(element, scenario_status)
-
-          data = {
-            :status => scenario_status,
-            :report => scenario_report,
-            :metrics => metrics
-          }
-
-          sensu_event = {
-            :handlers => [config[:handler]],
-            :name => "#{config[:name]}.#{generate_name_from_scenario(element)}",
-            :output => data.to_json
-          }
-
-          case scenario_status
-            when :passed
-              sensu_event[:status] = OK
-            when :failed
-              sensu_event[:status] = CRITICAL
-            when :pending, :undefined
-              sensu_event[:status] = WARNING
-          end
-
-          scenario_count += 1
-          status_counts[scenario_status] += 1
-
-          sensu_events << sensu_event
         end
       end
     end

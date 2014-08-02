@@ -59,9 +59,24 @@ describe CheckCucumber do
                 end
               end
 
-              describe 'when there are no steps' do
+              describe 'when there are no scenarios' do
                 it 'returns ok' do
                   expect(check_cucumber).to receive('ok').with('scenarios: 0')
+                end
+              end
+
+              describe 'when there are no steps' do
+                before(:each) do
+                  report << generate_feature(:scenarios => [{:step_statuses => []}])
+                end
+
+                it 'returns ok' do
+                  expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                end
+
+                it 'raises an ok event' do
+                  sensu_event = generate_sensu_event(:status => :passed, :report => report)
+                  expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
                 end
               end
 
@@ -121,6 +136,21 @@ describe CheckCucumber do
 
                 it 'raises a warning event' do
                   sensu_event = generate_sensu_event(:status => :undefined, :report => report)
+                  expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
+                end
+              end
+
+              describe 'when there is a background' do
+                before(:each) do
+                  report << generate_feature(:has_background => true, :scenarios => [{:step_statuses => []}])
+                end
+
+                it 'returns ok' do
+                  expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                end
+
+                it 'raises an ok event' do
+                  sensu_event = generate_sensu_event(:status => :passed, :report => report)
                   expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
                 end
               end
@@ -407,14 +437,31 @@ end
 def generate_feature(options = {})
   feature_index = options[:feature_index] || 0
   feature = {
-      :id => "Feature-#{feature_index}",
-      :name => "Feature #{feature_index}",
-      :description => "This is Feature #{feature_index}",
-      :line => 1,
-      :keyword => "Feature",
-      :uri => "features/feature-#{feature_index}.feature",
-      :elements => []
+    :id => "Feature-#{feature_index}",
+    :name => "Feature #{feature_index}",
+    :description => "This is Feature #{feature_index}",
+    :line => 1,
+    :keyword => "Feature",
+    :uri => "features/feature-#{feature_index}.feature",
+    :elements => []
   }
+
+  if options[:has_background]
+    feature[:elements] << {
+      :name => "Background 0",
+      :keyword => "Background",
+      :description => "This is Background 0",
+      :type => "background",
+      :line => 3,
+      :steps => [
+        {
+          :name => "a passing pre-condition",
+          :line => 4,
+          :keyword => "Given "
+        }
+      ]
+    }
+  end
 
   scenario_index = 0
 
@@ -461,12 +508,13 @@ def generate_sensu_event(options = {})
   scenario_index = options[:scenario_index] || 0
 
   feature = deep_dup(options[:report][feature_index])
-  scenario = feature[:elements][scenario_index]
+  scenarios = feature[:elements].select {|element| element[:type] == 'scenario'}
+  scenario = scenarios[scenario_index]
   feature[:elements] = [scenario]
 
   metrics = []
 
-  if options[:status] == :passed
+  if options[:status] == :passed && scenario.has_key?(:steps) && scenario[:steps].length > 0
     scenario_duration = 0
 
     scenario[:steps].each.with_index do |step, step_index|
