@@ -338,6 +338,27 @@ describe CheckCucumber do
       expect(metrics).to eq(expected_metrics)
     end
 
+    it 'ignores a scenario with an empty array of steps' do
+      scenario[:steps] = []
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
+      expected_metrics = []
+      expect(metrics).to eq(expected_metrics)
+    end
+
+    it 'ignores a scenario with only steps that have no results' do
+      scenario[:steps] << {}
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
+      expected_metrics = []
+      expect(metrics).to eq(expected_metrics)
+    end
+
+    it 'ignores a scenario with only steps that have no duration' do
+      scenario[:steps] << {:result => {}}
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
+      expected_metrics = []
+      expect(metrics).to eq(expected_metrics)
+    end
+
     it 'ignores a step with no result' do
       scenario[:steps] << {}
       scenario[:steps] << {:result => {:duration => 1.5}}
