@@ -65,7 +65,7 @@ describe CheckCucumber do
               end
 
               it 'raises an ok event' do
-                sensu_event = generate_sensu_event(:status => :passed)
+                sensu_event = generate_sensu_event(:status => :passed, :report => report)
                 expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
               end
             end
@@ -80,7 +80,7 @@ describe CheckCucumber do
               end
 
               it 'raises a critical event' do
-                sensu_event = generate_sensu_event(:status => :failed)
+                sensu_event = generate_sensu_event(:status => :failed, :report => report)
                 expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
               end
             end
@@ -95,7 +95,7 @@ describe CheckCucumber do
               end
 
               it 'raises a warning event' do
-                sensu_event = generate_sensu_event(:status => :pending)
+                sensu_event = generate_sensu_event(:status => :pending, :report => report)
                 expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
               end
             end
@@ -110,7 +110,7 @@ describe CheckCucumber do
               end
 
               it 'raises a warning event' do
-                sensu_event = generate_sensu_event(:status => :undefined)
+                sensu_event = generate_sensu_event(:status => :undefined, :report => report)
                 expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
               end
             end
@@ -126,8 +126,8 @@ describe CheckCucumber do
 
               it 'raises multiple events' do
                 sensu_events = []
-                sensu_events << generate_sensu_event(:status => :passed, :scenario_index => 0)
-                sensu_events << generate_sensu_event(:status => :passed, :scenario_index => 1)
+                sensu_events << generate_sensu_event(:status => :passed, :scenario_index => 0, :report => report)
+                sensu_events << generate_sensu_event(:status => :passed, :scenario_index => 1, :report => report)
                 expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
               end
             end
@@ -144,8 +144,8 @@ describe CheckCucumber do
 
               it 'raises multiple events' do
                 sensu_events = []
-                sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0)
-                sensu_events << generate_sensu_event(:status => :passed, :feature_index => 1, :scenario_index => 0)
+                sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
+                sensu_events << generate_sensu_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
                 expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
               end
             end
@@ -319,9 +319,20 @@ def generate_feature(options = {})
   feature
 end
 
+def deep_dup(obj)
+  Marshal.load(Marshal.dump(obj))
+end
+
 def generate_sensu_event(options = {})
+  feature_index = options[:feature_index] || 0
+  scenario_index = options[:scenario_index] || 0
+
+  feature = deep_dup(options[:report][feature_index])
+  feature[:elements] = [feature[:elements][scenario_index]]
+
   data = {
-    :status => options[:status]
+    :status => options[:status],
+    :report => [feature]
   }
 
   status_code_map = {
@@ -333,7 +344,7 @@ def generate_sensu_event(options = {})
 
   sensu_event = {
     :handlers => ['example-handler'],
-    :name => "example-name.Feature-#{options[:feature_index] || '0'}.scenario-#{options[:scenario_index] || '0'}",
+    :name => "example-name.Feature-#{feature_index}.scenario-#{scenario_index}",
     :output => data.to_json,
     :status => status_code_map[options[:status]]
   }

@@ -100,8 +100,13 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
             end
           end
 
+          feature_clone = deep_dup(feature)
+          feature_clone[:elements] = [deep_dup(element)]
+          scenario_report = [feature_clone]
+
           data = {
-            :status => scenario_status
+            :status => scenario_status,
+            :report => scenario_report
           }
 
           sensu_event = {
@@ -169,6 +174,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       socket.send data, 0, '127.0.0.1', 3030
       socket.close
     end
+  end
+
+  def deep_dup(obj)
+    Marshal.load(Marshal.dump(obj))
   end
 
 end
