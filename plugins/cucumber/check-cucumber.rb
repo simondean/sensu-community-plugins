@@ -51,13 +51,22 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :short => '-c COMMAND',
     :long => '--command COMMAND'
 
+  option :working_dir,
+    :description => "Working directory to use with Cucumber",
+    :short => '-w WORKING_DIR',
+    :long => '--working-dir WORKING_DIR'
+
   option :debug,
     :description => "Print debug information",
     :long => '--debug',
     :boolean => true
 
   def execute_cucumber
-    report = `#{config[:command]}`
+    report = nil
+
+    IO.popen(config[:command], :chdir => config[:working_dir]) do |io|
+      report = io.read
+    end
 
     {:report => JSON.parse(report, :symbolize_names => true), :exit_status => $?.exitstatus}
   end
@@ -80,6 +89,11 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     if config[:command].nil?
       unknown "No cucumber command line specified"
+      return
+    end
+
+    if config[:working_dir].nil?
+      unknown "No working directory specified"
       return
     end
 
