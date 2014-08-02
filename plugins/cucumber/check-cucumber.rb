@@ -24,7 +24,7 @@ require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'sensu-plugin/check/cli'
 require 'json'
 
-class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
+class CheckCucumber < Sensu::Plugin::Check::CLI
   OK = 0
   WARNING = 1
   CRITICAL = 2
@@ -50,7 +50,7 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
     :long => '--debug',
     :boolean => true
 
-  def execute_cucumber_features
+  def execute_cucumber
     report = `#{config[:command]}`
 
     {:report => JSON.parse(report, :symbolize_names => true), :exit_status => $?.exitstatus}
@@ -72,7 +72,7 @@ class CheckCucumberFeatures < Sensu::Plugin::Check::CLI
       return
     end
 
-    result = execute_cucumber_features
+    result = execute_cucumber
 
     outcome = OK
     scenario_count = 0
