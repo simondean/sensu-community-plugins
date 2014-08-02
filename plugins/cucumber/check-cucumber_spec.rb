@@ -66,7 +66,7 @@ describe CheckCucumber do
 
               it 'raises an ok event' do
                 sensu_event = generate_sensu_event(:status => 0)
-                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_event)
+                expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
               end
             end
 
@@ -81,7 +81,7 @@ describe CheckCucumber do
 
               it 'raises a critical event' do
                 sensu_event = generate_sensu_event(:status => 2)
-                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_event)
+                expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
               end
             end
 
@@ -96,7 +96,7 @@ describe CheckCucumber do
 
               it 'raises a warning event' do
                 sensu_event = generate_sensu_event(:status => 1)
-                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_event)
+                expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
               end
             end
 
@@ -111,7 +111,7 @@ describe CheckCucumber do
 
               it 'raises a warning event' do
                 sensu_event = generate_sensu_event(:status => 1)
-                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_event)
+                expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
               end
             end
 
@@ -128,8 +128,7 @@ describe CheckCucumber do
                 sensu_events = []
                 sensu_events << generate_sensu_event(:status => 0, :scenario_index => 0)
                 sensu_events << generate_sensu_event(:status => 0, :scenario_index => 1)
-                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_events[0]).ordered
-                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_events[1]).ordered
+                expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
               end
             end
 
@@ -147,8 +146,7 @@ describe CheckCucumber do
                 sensu_events = []
                 sensu_events << generate_sensu_event(:status => 0, :feature_index => 0, :scenario_index => 0)
                 sensu_events << generate_sensu_event(:status => 0, :feature_index => 1, :scenario_index => 0)
-                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_events[0]).ordered
-                expect(check_cucumber).to receive('raise_sensu_event').with(sensu_events[1]).ordered
+                expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
               end
             end
 

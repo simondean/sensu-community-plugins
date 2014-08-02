@@ -23,6 +23,7 @@
 require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'sensu-plugin/check/cli'
 require 'json'
+require 'socket'
 
 class CheckCucumber < Sensu::Plugin::Check::CLI
   OK = 0
@@ -76,6 +77,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     outcome = OK
     scenario_count = 0
+    sensu_events = []
 
     result[:report].each do |feature|
       if feature.has_key? :elements
@@ -112,10 +114,12 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
               sensu_event[:status] = WARNING
           end
 
-          raise_sensu_event sensu_event
+          sensu_events << sensu_event
         end
       end
     end
+
+    raise_sensu_events sensu_events unless sensu_events.length == 0
 
     case outcome
       when OK
@@ -144,14 +148,24 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     check_name
   end
 
-  def raise_sensu_event(sensu_event)
-  end
+  def raise_sensu_events(sensu_events)
+    data = ''
 
-  def output(obj = nil)
-    if obj.is_a?(String) || obj.is_a?(Exception)
-      puts obj.to_s
-    elsif obj.is_a?(Hash)
-      puts ::JSON.generate(obj)
+    sensu_events.each do |sensu_event|
+      data << sensu_event.to_json
+      data << '\n'
+    end
+
+    socket = TCPSocket.new '127.0.0.1', 3030
+
+    index = 0
+    length = data.length
+
+    while index < length
+      bytes_sent = socket.send data[index..-1], 0
+      return false if bytes_sent < 0
+
+      index += bytes_sent
     end
   end
 
