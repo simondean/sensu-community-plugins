@@ -316,12 +316,20 @@ def generate_feature(options = {})
       :steps => []
     }
 
+    step_index = 0
+
     Array(scenario_options[:step_statuses]).each do |step_status|
       scenario[:steps] << {
+        :name => "a passing pre-condition",
+        :line => 4 + step_index,
+        :keyword => "Given ",
         :result => {
+          :duration => step_index + 0.5,
           :status => step_status.to_s
-        }
+        },
+        :match => {}
       }
+      step_index += 1
     end
 
     feature[:elements] << scenario
