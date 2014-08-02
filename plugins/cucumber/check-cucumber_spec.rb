@@ -313,7 +313,8 @@ describe CheckCucumber do
       scenario[:steps] << {:result => {:duration => 0.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario)
       expected_metrics = [
-        {:path => "example-metrics-prefix.example-scenario-id.step-1.duration", :value => "0.5"}
+        {:path => "example-metrics-prefix.example-scenario-id.duration", :value => 0.5},
+        {:path => "example-metrics-prefix.example-scenario-id.step-1.duration", :value => 0.5}
       ]
       expect(metrics).to eq(expected_metrics)
     end
@@ -323,8 +324,9 @@ describe CheckCucumber do
       scenario[:steps] << {:result => {:duration => 1.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario)
       expected_metrics = [
-        {:path => "example-metrics-prefix.example-scenario-id.step-1.duration", :value => "0.5"},
-        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => "1.5"}
+        {:path => "example-metrics-prefix.example-scenario-id.duration", :value => 2},
+        {:path => "example-metrics-prefix.example-scenario-id.step-1.duration", :value => 0.5},
+        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => 1.5}
       ]
       expect(metrics).to eq(expected_metrics)
     end
@@ -341,7 +343,8 @@ describe CheckCucumber do
       scenario[:steps] << {:result => {:duration => 1.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario)
       expected_metrics = [
-        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => "1.5"}
+        {:path => "example-metrics-prefix.example-scenario-id.duration", :value => 1.5},
+        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => 1.5}
       ]
       expect(metrics).to eq(expected_metrics)
     end
@@ -351,7 +354,8 @@ describe CheckCucumber do
       scenario[:steps] << {:result => {:duration => 1.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario)
       expected_metrics = [
-        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => "1.5"}
+        {:path => "example-metrics-prefix.example-scenario-id.duration", :value => 1.5},
+        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => 1.5}
       ]
       expect(metrics).to eq(expected_metrics)
     end
@@ -419,13 +423,20 @@ def generate_sensu_event(options = {})
   feature[:elements] = [scenario]
 
   metrics = []
+  scenario_duration = 0
 
   scenario[:steps].each.with_index do |step, step_index|
     metrics << {
       :path => "example-metrics-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-#{step_index + 1}.duration",
-      :value => step[:result][:duration].to_s
+      :value => step[:result][:duration]
     }
+    scenario_duration += step[:result][:duration]
   end
+
+  metrics.unshift({
+    :path => "example-metrics-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.duration",
+    :value => scenario_duration
+  })
 
   data = {
     :status => options[:status],

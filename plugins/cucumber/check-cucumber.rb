@@ -195,14 +195,23 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
   def generate_metrics_from_scenario(scenario)
     metrics = []
+    scenario_duration = 0
 
-    Array(scenario[:steps]).each.with_index do |step, step_index|
-      if step.has_key?(:result) && step[:result].has_key?(:duration)
-        metrics << {
-          :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.step-#{step_index + 1}.duration",
-          :value => step[:result][:duration].to_s
-        }
+    if scenario.has_key?(:steps)
+      Array(scenario[:steps]).each.with_index do |step, step_index|
+        if step.has_key?(:result) && step[:result].has_key?(:duration)
+          metrics << {
+            :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.step-#{step_index + 1}.duration",
+            :value => step[:result][:duration]
+          }
+          scenario_duration += step[:result][:duration]
+        end
       end
+
+      metrics.unshift({
+        :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.duration",
+        :value => scenario_duration
+      })
     end
 
     metrics
