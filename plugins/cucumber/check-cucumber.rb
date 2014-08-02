@@ -197,7 +197,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     if scenario_has_durations(scenario)
       metrics = []
 
-      scenario[:steps].each.with_index do |step, step_index|
+      Array(scenario[:steps]).each.with_index do |step, step_index|
         metrics << {
           :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.step-#{step_index + 1}.duration",
           :value => step[:result][:duration].to_s
