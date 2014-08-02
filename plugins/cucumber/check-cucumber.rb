@@ -77,6 +77,9 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     outcome = OK
     scenario_count = 0
+    statuses = [:passed, :failed, :pending, :undefined]
+    status_counts = {}
+    statuses.each {|scenario_status| status_counts[scenario_status] = 0}
     sensu_events = []
 
     result[:report].each do |feature|
@@ -97,8 +100,6 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
             end
           end
 
-          scenario_count += 1
-
           sensu_event = {
             :handlers => [config[:handler]],
             :name => "#{config[:name]}.#{generate_check_name_from_scenario(element)}",
@@ -110,9 +111,12 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
               sensu_event[:status] = OK
             when :failed
               sensu_event[:status] = CRITICAL
-              when :pending, :undefined
+            when :pending, :undefined
               sensu_event[:status] = WARNING
           end
+
+          scenario_count += 1
+          status_counts[scenario_status] += 1
 
           sensu_events << sensu_event
         end
@@ -121,9 +125,14 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     raise_sensu_events sensu_events unless sensu_events.length == 0
 
+    message = "scenarios: #{scenario_count}"
+    statuses.each do |status|
+      message << ", #{status}: #{status_counts[status]}" unless status_counts[status] == 0
+    end
+
     case outcome
       when OK
-        ok "#{scenario_count} #{scenario_count != 1 ? 'scenarios' : 'scenario'}"
+        ok message
     end
   end
 

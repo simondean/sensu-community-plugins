@@ -51,7 +51,7 @@ describe CheckCucumber do
 
             describe 'when there are no steps' do
               it 'returns ok' do
-                expect(check_cucumber).to receive('ok').with('0 scenarios')
+                expect(check_cucumber).to receive('ok').with('scenarios: 0')
               end
             end
 
@@ -61,7 +61,7 @@ describe CheckCucumber do
               end
 
               it 'returns ok' do
-                expect(check_cucumber).to receive('ok').with('1 scenario')
+                expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
               end
 
               it 'raises an ok event' do
@@ -76,7 +76,7 @@ describe CheckCucumber do
               end
 
               it 'returns ok' do
-                expect(check_cucumber).to receive('ok').with('1 scenario')
+                expect(check_cucumber).to receive('ok').with('scenarios: 1, failed: 1')
               end
 
               it 'raises a critical event' do
@@ -91,7 +91,7 @@ describe CheckCucumber do
               end
 
               it 'returns ok' do
-                expect(check_cucumber).to receive('ok').with('1 scenario')
+                expect(check_cucumber).to receive('ok').with('scenarios: 1, pending: 1')
               end
 
               it 'raises a warning event' do
@@ -106,7 +106,7 @@ describe CheckCucumber do
               end
 
               it 'returns ok' do
-                expect(check_cucumber).to receive('ok').with('1 scenario')
+                expect(check_cucumber).to receive('ok').with('scenarios: 1, undefined: 1')
               end
 
               it 'raises a warning event' do
@@ -121,7 +121,7 @@ describe CheckCucumber do
               end
 
               it 'returns ok' do
-                expect(check_cucumber).to receive('ok').with('2 scenarios')
+                expect(check_cucumber).to receive('ok').with('scenarios: 2, passed: 2')
               end
 
               it 'raises multiple events' do
@@ -139,7 +139,7 @@ describe CheckCucumber do
               end
 
               it 'returns ok' do
-                expect(check_cucumber).to receive('ok').with('2 scenarios')
+                expect(check_cucumber).to receive('ok').with('scenarios: 2, passed: 2')
               end
 
               it 'raises multiple events' do
