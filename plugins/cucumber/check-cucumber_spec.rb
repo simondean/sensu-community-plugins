@@ -292,15 +292,27 @@ describe CheckCucumber do
 end
 
 def generate_feature(options = {})
+  feature_index = options[:feature_index] || 0
   feature = {
-    :elements => []
+      :id => "Feature-#{feature_index}",
+      :name => "Feature #{feature_index}",
+      :description => "This is Feature #{feature_index}",
+      :line => 1,
+      :keyword => "Feature",
+      :uri => "features/feature-#{feature_index}.feature",
+      :elements => []
   }
 
   scenario_index = 0
 
   Array(options[:scenarios]).each do |scenario_options|
     scenario = {
-      :id => "Feature-#{options[:feature_index] || '0'};scenario-#{scenario_index}",
+      :name => "Scenario #{scenario_index}",
+      :id => "#{feature[:id]};scenario-#{scenario_index}",
+      :line => 3,
+      :keyword => "Scenario #{scenario_index}",
+      :description => "This is Scenario #{scenario_index}",
+      :type => "scenario",
       :steps => []
     }
 
