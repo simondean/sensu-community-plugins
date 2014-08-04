@@ -206,7 +206,8 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   end
 
   def generate_name_from_scenario(scenario)
-    check_name = scenario[:id].gsub(/;/, '.')
+    check_name = scenario[:id].gsub(/\./, '-')
+      .gsub(/;/, '.')
       .gsub(/[^a-zA-Z0-9\._-]/, '-')
       .gsub(/^\.+/, '')
       .gsub(/\.+$/, '')

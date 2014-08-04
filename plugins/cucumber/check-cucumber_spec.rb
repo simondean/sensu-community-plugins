@@ -241,6 +241,12 @@ describe CheckCucumber do
       expect(check_name).to eq('text')
     end
 
+    it 'replaces a period with a hyphen' do
+      scenario = {:id => 'text.text'}
+      check_name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(check_name).to eq('text-text')
+    end
+
     it 'replaces a semi colon with a period' do
       scenario = {:id => 'text;text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
@@ -257,12 +263,6 @@ describe CheckCucumber do
       scenario = {:id => 'text-text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text-text')
-    end
-
-    it 'does not replace periods' do
-      scenario = {:id => 'text.text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text.text')
     end
 
     it 'replaces every character (except letters, periods, hyphens and underscores) with hyphen' do
@@ -311,55 +311,55 @@ describe CheckCucumber do
     end
 
     it 'removes a period at the start' do
-      scenario = {:id => '.text'}
+      scenario = {:id => ';text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text')
     end
 
     it 'removes multiple periods at the start' do
-      scenario = {:id => '..text'}
+      scenario = {:id => ';;text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text')
     end
 
     it 'removes a period at the end' do
-      scenario = {:id => 'text.'}
+      scenario = {:id => 'text;'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text')
     end
 
     it 'removes multiple periods at the end' do
-      scenario = {:id => 'text..'}
+      scenario = {:id => 'text;;'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text')
     end
 
     it 'replaces consecutive periods with a single period' do
-      scenario = {:id => 'text..text'}
+      scenario = {:id => 'text;;text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text.text')
     end
 
     it 'removes a hyphen at the start of a part' do
-      scenario = {:id => 'text.-text'}
+      scenario = {:id => 'text;-text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text.text')
     end
 
     it 'removes multiple hyphens at the start of a part' do
-      scenario = {:id => 'text.--text'}
+      scenario = {:id => 'text;--text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text.text')
     end
 
     it 'removes a hyphen at the end of a part' do
-      scenario = {:id => 'text.-text'}
+      scenario = {:id => 'text;-text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text.text')
     end
 
     it 'removes multiple hyphens at the end of a part' do
-      scenario = {:id => 'text.--text'}
+      scenario = {:id => 'text;--text'}
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text.text')
     end
