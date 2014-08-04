@@ -77,6 +77,7 @@ describe CheckCucumber do
                     expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
                       {:report => report, :exit_status => 0}
                     end
+                    Time.stub_chain(:now, :getutc, :to_i) {123}
                   end
 
                   describe 'when there are no scenarios' do
@@ -374,83 +375,83 @@ describe CheckCucumber do
 
     it 'generates metrics for a single step' do
       scenario[:steps] << {:result => {:duration => 0.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5\n" +
-        "example-metric-prefix.example-scenario-id.step-count 1\n" +
-        "example-metric-prefix.example-scenario-id.step-1.duration 0.5"
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5 123\n" +
+        "example-metric-prefix.example-scenario-id.step-count 1 123\n" +
+        "example-metric-prefix.example-scenario-id.step-1.duration 0.5 123"
       expect(metrics).to eq(expected_metrics)
     end
 
     it 'generates metrics for multiple steps' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       scenario[:steps] << {:result => {:duration => 1.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = "example-metric-prefix.example-scenario-id.duration 2.0\n" +
-        "example-metric-prefix.example-scenario-id.step-count 2\n" +
-        "example-metric-prefix.example-scenario-id.step-1.duration 0.5\n" +
-        "example-metric-prefix.example-scenario-id.step-2.duration 1.5"
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      expected_metrics = "example-metric-prefix.example-scenario-id.duration 2.0 123\n" +
+        "example-metric-prefix.example-scenario-id.step-count 2 123\n" +
+        "example-metric-prefix.example-scenario-id.step-1.duration 0.5 123\n" +
+        "example-metric-prefix.example-scenario-id.step-2.duration 1.5 123"
       expect(metrics).to eq(expected_metrics)
     end
 
     it 'ignores a scenario with no steps' do
       scenario.delete :steps
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a scenario with an empty array of steps' do
       scenario[:steps] = []
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a scenario with only steps that have no results' do
       scenario[:steps] << {}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a scenario with only steps that have no duration' do
       scenario[:steps] << {:result => {}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a step with no result' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       scenario[:steps] << {}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5\n" +
-        "example-metric-prefix.example-scenario-id.step-count 2\n" +
-        "example-metric-prefix.example-scenario-id.step-1.duration 0.5"
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5 123\n" +
+        "example-metric-prefix.example-scenario-id.step-count 2 123\n" +
+        "example-metric-prefix.example-scenario-id.step-1.duration 0.5 123"
       expect(metrics).to eq(expected_metrics)
     end
 
     it 'ignores a step with no duration' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       scenario[:steps] << {:result => {}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5\n" +
-        "example-metric-prefix.example-scenario-id.step-count 2\n" +
-        "example-metric-prefix.example-scenario-id.step-1.duration 0.5"
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5 123\n" +
+        "example-metric-prefix.example-scenario-id.step-count 2 123\n" +
+        "example-metric-prefix.example-scenario-id.step-1.duration 0.5 123"
       expect(metrics).to eq(expected_metrics)
     end
 
     it 'ignores a failed scenario' do
       scenario[:steps] << {:result => {:duration => 0.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :failed)
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :failed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a pending scenario' do
       scenario[:steps] << {:result => {:duration => 0.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :pending)
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :pending, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores an undefined scenario' do
       scenario[:steps] << {:result => {:duration => 0.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :undefined)
+      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :undefined, 123)
       expect(metrics).to be_nil
     end
   end
@@ -544,13 +545,13 @@ def generate_sensu_event(options = {})
         scenario_duration = 0
 
         scenario[:steps].each.with_index do |step, step_index|
-          metrics << "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-#{step_index + 1}.duration #{step[:result][:duration]}"
+          metrics << "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-#{step_index + 1}.duration #{step[:result][:duration]} 123"
           scenario_duration += step[:result][:duration]
         end
 
         metrics.unshift([
-          "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.duration #{scenario_duration}",
-          "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-count #{scenario[:steps].length}"
+          "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.duration #{scenario_duration} 123",
+          "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-count #{scenario[:steps].length} 123"
         ])
       end
 

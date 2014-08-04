@@ -115,6 +115,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     status_counts = {}
     statuses.each {|scenario_status| status_counts[scenario_status] = 0}
     sensu_events = []
+    utc_timestamp = Time.now.getutc.to_i
 
     result[:report].each do |feature|
       if feature.has_key? :elements
@@ -163,7 +164,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
             sensu_events << sensu_event
 
-            metrics = generate_metrics_from_scenario(element, scenario_status)
+            metrics = generate_metrics_from_scenario(element, scenario_status, utc_timestamp)
 
             unless metrics.nil?
               metric_event = {
@@ -239,7 +240,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     Marshal.load(Marshal.dump(obj))
   end
 
-  def generate_metrics_from_scenario(scenario, scenario_status)
+  def generate_metrics_from_scenario(scenario, scenario_status, utc_timestamp)
     metrics = []
 
     if scenario_status == :passed
@@ -254,15 +255,15 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
             has_step_durations = true
             step_duration = step[:result][:duration]
             step_duration = step_duration
-            metrics << "#{scenario_metric_prefix}.step-#{step_index + 1}.duration #{step_duration}"
+            metrics << "#{scenario_metric_prefix}.step-#{step_index + 1}.duration #{step_duration} #{utc_timestamp}"
             scenario_duration += step_duration
           end
         end
 
         if has_step_durations
           scenario_metrics = [
-            "#{scenario_metric_prefix}.duration #{scenario_duration}",
-            "#{scenario_metric_prefix}.step-count #{scenario[:steps].length}"
+            "#{scenario_metric_prefix}.duration #{scenario_duration} #{utc_timestamp}",
+            "#{scenario_metric_prefix}.step-count #{scenario[:steps].length} #{utc_timestamp}"
           ]
           metrics.unshift scenario_metrics
         end
