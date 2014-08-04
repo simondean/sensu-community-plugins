@@ -73,41 +73,48 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       report = io.read
     end
 
-    {:report => JSON.parse(report, :symbolize_names => true), :exit_status => $?.exitstatus}
+    {:report => report, :exit_status => $?.exitstatus}
   end
 
   def run
     if config[:name].nil?
-      unknown "No name specified"
+      unknown 'No name specified'
       return
     end
 
     if config[:handler].nil?
-      unknown "No handler specified"
+      unknown 'No handler specified'
       return
     end
 
     if config[:metric_handler].nil?
-      unknown "No metric handler specified"
+      unknown 'No metric handler specified'
       return
     end
 
     if config[:metric_prefix].nil?
-      unknown "No metric prefix specified"
+      unknown 'No metric prefix specified'
       return
     end
 
     if config[:command].nil?
-      unknown "No cucumber command line specified"
+      unknown 'No cucumber command line specified'
       return
     end
 
     if config[:working_dir].nil?
-      unknown "No working directory specified"
+      unknown 'No working directory specified'
       return
     end
 
     result = execute_cucumber
+
+    unless [0, 1].include? result[:exit_status]
+      unknown "Cucumber returned exit code #{result[:exit_status]}"
+      return
+    end
+
+    report = JSON.parse(result[:report], :symbolize_names => true)
 
     outcome = OK
     scenario_count = 0
@@ -117,7 +124,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     sensu_events = []
     utc_timestamp = Time.now.getutc.to_i
 
-    result[:report].each do |feature|
+    report.each do |feature|
       if feature.has_key? :elements
         feature[:elements].each do |element|
           if element[:type] == 'scenario'
