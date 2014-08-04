@@ -29,179 +29,201 @@ describe CheckCucumber do
           check_cucumber.config[:handler] = 'example-handler'
         end
 
-        it 'returns unknown if no metrics prefix is specified' do
-          expect(check_cucumber).to receive('unknown').with('No metrics prefix specified')
+        it 'returns unknown if no metric handler is specified' do
+          expect(check_cucumber).to receive('unknown').with('No metric handler specified')
           check_cucumber.run
         end
 
-        describe 'when the metrics prefix is specified' do
+        describe 'when the metric handler is specified' do
           before(:each) do
-            check_cucumber.config[:metrics_prefix] = 'example-metrics-prefix'
+            check_cucumber.config[:metric_handler] = 'example-metric-handler'
           end
 
-          it 'returns unknown if no cucumber command line is specified' do
-            expect(check_cucumber).to receive('unknown').with('No cucumber command line specified')
+          it 'returns unknown if no metric prefix is specified' do
+            expect(check_cucumber).to receive('unknown').with('No metric prefix specified')
             check_cucumber.run
           end
 
-          describe 'when the Cucumber command line is specified' do
+          describe 'when the metric prefix is specified' do
             before(:each) do
-              check_cucumber.config[:command] = 'cucumber-js features/'
+              check_cucumber.config[:metric_prefix] = 'example-metric-prefix'
             end
 
-            it 'returns unknown if no working dir is specified' do
-              expect(check_cucumber).to receive('unknown').with('No working directory specified')
+            it 'returns unknown if no cucumber command line is specified' do
+              expect(check_cucumber).to receive('unknown').with('No cucumber command line specified')
               check_cucumber.run
             end
 
             describe 'when the Cucumber command line is specified' do
               before(:each) do
-                check_cucumber.config[:working_dir] = 'example-working-dir'
+                check_cucumber.config[:command] = 'cucumber-js features/'
               end
 
-              describe 'when cucumber executes and provides a report' do
-                report = nil
+              it 'returns unknown if no working dir is specified' do
+                expect(check_cucumber).to receive('unknown').with('No working directory specified')
+                check_cucumber.run
+              end
 
+              describe 'when the Cucumber command line is specified' do
                 before(:each) do
-                  report = []
-                  expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
-                    {:report => report, :exit_status => 0}
-                  end
+                  check_cucumber.config[:working_dir] = 'example-working-dir'
                 end
 
-                describe 'when there are no scenarios' do
-                  it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 0')
-                  end
-                end
+                describe 'when cucumber executes and provides a report' do
+                  report = nil
 
-                describe 'when there are no steps' do
                   before(:each) do
-                    report << generate_feature(:scenarios => [{:step_statuses => []}])
+                    report = []
+                    expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
+                      {:report => report, :exit_status => 0}
+                    end
                   end
 
-                  it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                  describe 'when there are no scenarios' do
+                    it 'returns warning' do
+                      expect(check_cucumber).to receive('warning').with('scenarios: 0')
+                    end
+
+                    it 'does not raise any events' do
+                      expect(check_cucumber).to_not receive('raise_sensu_events')
+                    end
                   end
 
-                  it 'raises an ok event' do
-                    sensu_event = generate_sensu_event(:status => :passed, :report => report)
-                    expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
-                  end
-                end
+                  describe 'when there are no steps' do
+                    before(:each) do
+                      report << generate_feature(:scenarios => [{:step_statuses => []}])
+                    end
 
-                describe 'when there is a passing step' do
-                  before(:each) do
-                    report << generate_feature(:scenarios => [{:step_statuses => :passed}])
-                  end
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                    end
 
-                  it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
-                  end
-
-                  it 'raises an ok event' do
-                    sensu_event = generate_sensu_event(:status => :passed, :report => report)
-                    expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
-                  end
-                end
-
-                describe 'when there is a passing step followed by a failing step' do
-                  before(:each) do
-                    report << generate_feature(:scenarios => [{:step_statuses => [:passed, :failed]}])
+                    it 'raises an ok event' do
+                      sensu_event = generate_sensu_event(:status => :passed, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
+                    end
                   end
 
-                  it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 1, failed: 1')
+                  describe 'when there is a passing step' do
+                    before(:each) do
+                      report << generate_feature(:scenarios => [{:step_statuses => :passed}])
+                    end
+
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                    end
+
+                    it 'raises an ok event and a metric events' do
+                      sensu_events = []
+                      sensu_events << generate_sensu_event(:status => :passed, :report => report)
+                      sensu_events << generate_metric_event(:status => :passed, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                    end
                   end
 
-                  it 'raises a critical event' do
-                    sensu_event = generate_sensu_event(:status => :failed, :report => report)
-                    expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
-                  end
-                end
+                  describe 'when there is a passing step followed by a failing step' do
+                    before(:each) do
+                      report << generate_feature(:scenarios => [{:step_statuses => [:passed, :failed]}])
+                    end
 
-                describe 'when there is a passing step followed by a pending step' do
-                  before(:each) do
-                    report << generate_feature(:scenarios => [{:step_statuses => [:passed, :pending]}])
-                  end
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with('scenarios: 1, failed: 1')
+                    end
 
-                  it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 1, pending: 1')
-                  end
-
-                  it 'raises a warning event' do
-                    sensu_event = generate_sensu_event(:status => :pending, :report => report)
-                    expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
-                  end
-                end
-
-                describe 'when there is a passing step followed by a undefined step' do
-                  before(:each) do
-                    report << generate_feature(:scenarios => [{:step_statuses => [:passed, :undefined]}])
+                    it 'raises a critical event' do
+                      sensu_event = generate_sensu_event(:status => :failed, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
+                    end
                   end
 
-                  it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 1, undefined: 1')
+                  describe 'when there is a passing step followed by a pending step' do
+                    before(:each) do
+                      report << generate_feature(:scenarios => [{:step_statuses => [:passed, :pending]}])
+                    end
+
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with('scenarios: 1, pending: 1')
+                    end
+
+                    it 'raises a warning event' do
+                      sensu_event = generate_sensu_event(:status => :pending, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
+                    end
                   end
 
-                  it 'raises a warning event' do
-                    sensu_event = generate_sensu_event(:status => :undefined, :report => report)
-                    expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
-                  end
-                end
+                  describe 'when there is a passing step followed by a undefined step' do
+                    before(:each) do
+                      report << generate_feature(:scenarios => [{:step_statuses => [:passed, :undefined]}])
+                    end
 
-                describe 'when there is a background' do
-                  before(:each) do
-                    report << generate_feature(:has_background => true, :scenarios => [{:step_statuses => []}])
-                  end
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with('scenarios: 1, undefined: 1')
+                    end
 
-                  it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
-                  end
-
-                  it 'raises an ok event' do
-                    sensu_event = generate_sensu_event(:status => :passed, :report => report)
-                    expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
-                  end
-                end
-
-                describe 'when there are multiple scenarios' do
-                  before(:each) do
-                    report << generate_feature(:scenarios => [{:step_statuses => :passed}, {:step_statuses => :passed}])
+                    it 'raises a warning event' do
+                      sensu_event = generate_sensu_event(:status => :undefined, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
+                    end
                   end
 
-                  it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 2, passed: 2')
+                  describe 'when there is a background' do
+                    before(:each) do
+                      report << generate_feature(:has_background => true, :scenarios => [{:step_statuses => []}])
+                    end
+
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                    end
+
+                    it 'raises an ok event' do
+                      sensu_events = []
+                      sensu_events << generate_sensu_event(:status => :passed, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                    end
                   end
 
-                  it 'raises multiple events' do
-                    sensu_events = []
-                    sensu_events << generate_sensu_event(:status => :passed, :scenario_index => 0, :report => report)
-                    sensu_events << generate_sensu_event(:status => :passed, :scenario_index => 1, :report => report)
-                    expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
-                  end
-                end
+                  describe 'when there are multiple scenarios' do
+                    before(:each) do
+                      report << generate_feature(:scenarios => [{:step_statuses => :passed}, {:step_statuses => :passed}])
+                    end
 
-                describe 'when there are multiple features' do
-                  before(:each) do
-                    report << generate_feature(:feature_index => 0, :scenarios => [{:step_statuses => :passed}])
-                    report << generate_feature(:feature_index => 1, :scenarios => [{:step_statuses => :passed}])
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with('scenarios: 2, passed: 2')
+                    end
+
+                    it 'raises multiple ok events and multiple metric events' do
+                      sensu_events = []
+                      sensu_events << generate_sensu_event(:status => :passed, :scenario_index => 0, :report => report)
+                      sensu_events << generate_metric_event(:status => :passed, :scenario_index => 0, :report => report)
+                      sensu_events << generate_sensu_event(:status => :passed, :scenario_index => 1, :report => report)
+                      sensu_events << generate_metric_event(:status => :passed, :scenario_index => 1, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                    end
                   end
 
-                  it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 2, passed: 2')
+                  describe 'when there are multiple features' do
+                    before(:each) do
+                      report << generate_feature(:feature_index => 0, :scenarios => [{:step_statuses => :passed}])
+                      report << generate_feature(:feature_index => 1, :scenarios => [{:step_statuses => :passed}])
+                    end
+
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with('scenarios: 2, passed: 2')
+                    end
+
+                    it 'raises multiple ok events and multiple metric events' do
+                      sensu_events = []
+                      sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
+                      sensu_events << generate_metric_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
+                      sensu_events << generate_sensu_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
+                      sensu_events << generate_metric_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                    end
                   end
 
-                  it 'raises multiple events' do
-                    sensu_events = []
-                    sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
-                    sensu_events << generate_sensu_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
-                    expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                  after(:each) do
+                    check_cucumber.run
                   end
-                end
-
-                after(:each) do
-                  check_cucumber.run
                 end
               end
             end
@@ -346,17 +368,16 @@ describe CheckCucumber do
     scenario = nil
 
     before(:each) do
-      check_cucumber.config[:metrics_prefix] = 'example-metrics-prefix'
+      check_cucumber.config[:metric_prefix] = 'example-metric-prefix'
       scenario = {:id => 'example-scenario-id', :steps => []}
     end
 
     it 'generates metrics for a single step' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = [
-        {:path => "example-metrics-prefix.example-scenario-id.duration", :value => 0.5},
-        {:path => "example-metrics-prefix.example-scenario-id.step-1.duration", :value => 0.5}
-      ]
+      expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5\n" +
+        "example-metric-prefix.example-scenario-id.step-count 1\n" +
+        "example-metric-prefix.example-scenario-id.step-1.duration 0.5"
       expect(metrics).to eq(expected_metrics)
     end
 
@@ -364,83 +385,73 @@ describe CheckCucumber do
       scenario[:steps] << {:result => {:duration => 0.5}}
       scenario[:steps] << {:result => {:duration => 1.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = [
-        {:path => "example-metrics-prefix.example-scenario-id.duration", :value => 2},
-        {:path => "example-metrics-prefix.example-scenario-id.step-1.duration", :value => 0.5},
-        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => 1.5}
-      ]
+      expected_metrics = "example-metric-prefix.example-scenario-id.duration 2.0\n" +
+        "example-metric-prefix.example-scenario-id.step-count 2\n" +
+        "example-metric-prefix.example-scenario-id.step-1.duration 0.5\n" +
+        "example-metric-prefix.example-scenario-id.step-2.duration 1.5"
       expect(metrics).to eq(expected_metrics)
     end
 
     it 'ignores a scenario with no steps' do
       scenario.delete :steps
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = []
-      expect(metrics).to eq(expected_metrics)
+      expect(metrics).to be_nil
     end
 
     it 'ignores a scenario with an empty array of steps' do
       scenario[:steps] = []
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = []
-      expect(metrics).to eq(expected_metrics)
+      expect(metrics).to be_nil
     end
 
     it 'ignores a scenario with only steps that have no results' do
       scenario[:steps] << {}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = []
-      expect(metrics).to eq(expected_metrics)
+      expect(metrics).to be_nil
     end
 
     it 'ignores a scenario with only steps that have no duration' do
       scenario[:steps] << {:result => {}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = []
-      expect(metrics).to eq(expected_metrics)
+      expect(metrics).to be_nil
     end
 
     it 'ignores a step with no result' do
+      scenario[:steps] << {:result => {:duration => 0.5}}
       scenario[:steps] << {}
-      scenario[:steps] << {:result => {:duration => 1.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = [
-        {:path => "example-metrics-prefix.example-scenario-id.duration", :value => 1.5},
-        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => 1.5}
-      ]
+      expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5\n" +
+        "example-metric-prefix.example-scenario-id.step-count 2\n" +
+        "example-metric-prefix.example-scenario-id.step-1.duration 0.5"
       expect(metrics).to eq(expected_metrics)
     end
 
     it 'ignores a step with no duration' do
+      scenario[:steps] << {:result => {:duration => 0.5}}
       scenario[:steps] << {:result => {}}
-      scenario[:steps] << {:result => {:duration => 1.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed)
-      expected_metrics = [
-        {:path => "example-metrics-prefix.example-scenario-id.duration", :value => 1.5},
-        {:path => "example-metrics-prefix.example-scenario-id.step-2.duration", :value => 1.5}
-      ]
+      expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5\n" +
+        "example-metric-prefix.example-scenario-id.step-count 2\n" +
+        "example-metric-prefix.example-scenario-id.step-1.duration 0.5"
       expect(metrics).to eq(expected_metrics)
     end
 
     it 'ignores a failed scenario' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :failed)
-      expected_metrics = []
-      expect(metrics).to eq(expected_metrics)
+      expect(metrics).to be_nil
     end
 
     it 'ignores a pending scenario' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :pending)
-      expected_metrics = []
-      expect(metrics).to eq(expected_metrics)
+      expect(metrics).to be_nil
     end
 
     it 'ignores an undefined scenario' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       metrics = check_cucumber.generate_metrics_from_scenario(scenario, :undefined)
-      expected_metrics = []
-      expect(metrics).to eq(expected_metrics)
+      expect(metrics).to be_nil
     end
   end
 end
@@ -523,44 +534,60 @@ def generate_sensu_event(options = {})
   scenario = scenarios[scenario_index]
   feature[:elements] = [scenario]
 
-  metrics = []
+  sensu_event = nil
 
-  if options[:status] == :passed && scenario.has_key?(:steps) && scenario[:steps].length > 0
-    scenario_duration = 0
+  case options[:type]
+    when :metric
+      metrics = []
 
-    scenario[:steps].each.with_index do |step, step_index|
-      metrics << {
-        :path => "example-metrics-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-#{step_index + 1}.duration",
-        :value => step[:result][:duration]
+      if options[:status] == :passed && scenario.has_key?(:steps) && scenario[:steps].length > 0
+        scenario_duration = 0
+
+        scenario[:steps].each.with_index do |step, step_index|
+          metrics << "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-#{step_index + 1}.duration #{step[:result][:duration]}"
+          scenario_duration += step[:result][:duration]
+        end
+
+        metrics.unshift([
+          "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.duration #{scenario_duration}",
+          "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-count #{scenario[:steps].length}"
+        ])
+      end
+
+      metrics = metrics.join("\n")
+
+      sensu_event = {
+        :name => "example-name.Feature-#{feature_index}.scenario-#{scenario_index}.metrics",
+        :type => 'metric',
+        :handlers => ['example-metric-handler'],
+        :output => metrics,
+        :status => 0
       }
-      scenario_duration += step[:result][:duration]
-    end
+    else
+      data = {
+        :status => options[:status],
+        :report => [feature]
+      }
 
-    metrics.unshift({
-      :path => "example-metrics-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.duration",
-      :value => scenario_duration
-    })
+      status_code_map = {
+        :passed => 0,
+        :failed => 2,
+        :pending => 1,
+        :undefined => 1
+      }
+
+      sensu_event = {
+        :name => "example-name.Feature-#{feature_index}.scenario-#{scenario_index}",
+        :handlers => ['example-handler'],
+        :output => data.to_json,
+        :status => status_code_map[options[:status]]
+      }
   end
 
-  data = {
-    :status => options[:status],
-    :report => [feature],
-    :metrics => metrics
-  }
-
-  status_code_map = {
-    :passed => 0,
-    :failed => 2,
-    :pending => 1,
-    :undefined => 1
-  }
-
-  sensu_event = {
-    :handlers => ['example-handler'],
-    :name => "example-name.Feature-#{feature_index}.scenario-#{scenario_index}",
-    :output => data.to_json,
-    :status => status_code_map[options[:status]]
-  }
-
   sensu_event
+end
+
+def generate_metric_event(options = {})
+  options[:type] = :metric
+  generate_sensu_event(options)
 end

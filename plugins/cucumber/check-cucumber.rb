@@ -41,10 +41,15 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :short => '-h HANDLER',
     :long => '--handler HANDLER'
 
-  option :metrics_prefix,
-    :description => "Metrics prefix to use with metric paths in sensu events",
-    :short => '-m METRICS_PREFIX',
-    :long => '--metrics-prefix METRICS_PREFIX'
+  option :metric_handler,
+    :description => "Handler to use for metric events",
+    :short => '-m HANDLER',
+    :long => '--metric-handler HANDLER'
+
+  option :metric_prefix,
+    :description => "Metric prefix to use with metric paths in sensu events",
+    :short => '-p METRIC_PREFIX',
+    :long => '--metric-prefix METRIC_PREFIX'
 
   option :command,
     :description => "Cucumber command line, including arguments",
@@ -82,8 +87,13 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       return
     end
 
-    if config[:metrics_prefix].nil?
-      unknown "No metrics prefix specified"
+    if config[:metric_handler].nil?
+      unknown "No metric handler specified"
+      return
+    end
+
+    if config[:metric_prefix].nil?
+      unknown "No metric prefix specified"
       return
     end
 
@@ -129,17 +139,16 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
             feature_clone[:elements] = [deep_dup(element)]
             scenario_report = [feature_clone]
 
-            metrics = generate_metrics_from_scenario(element, scenario_status)
-
             data = {
               :status => scenario_status,
-              :report => scenario_report,
-              :metrics => metrics
+              :report => scenario_report
             }
 
+            event_name = "#{config[:name]}.#{generate_name_from_scenario(element)}"
+
             sensu_event = {
+              :name => event_name,
               :handlers => [config[:handler]],
-              :name => "#{config[:name]}.#{generate_name_from_scenario(element)}",
               :output => data.to_json
             }
 
@@ -152,10 +161,23 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
                 sensu_event[:status] = WARNING
             end
 
+            sensu_events << sensu_event
+
+            metrics = generate_metrics_from_scenario(element, scenario_status)
+
+            unless metrics.nil?
+              metric_event = {
+                :name => "#{event_name}.metrics",
+                :type => 'metric',
+                :handlers => [config[:metric_handler]],
+                :output => metrics,
+                :status => 0
+              }
+              sensu_events << metric_event
+            end
+
             scenario_count += 1
             status_counts[scenario_status] += 1
-
-            sensu_events << sensu_event
           end
         end
       end
@@ -168,9 +190,17 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       message << ", #{status}: #{status_counts[status]}" unless status_counts[status] == 0
     end
 
+    outcome = WARNING if scenario_count == 0
+
     case outcome
       when OK
         ok message
+      when WARNING
+        warning message
+      when CRITICAL
+        critical message
+      when UNKNOWN
+        unknown message
     end
   end
 
@@ -217,27 +247,32 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
       if scenario.has_key?(:steps)
         has_step_durations = false
+        scenario_metric_prefix = "#{config[:metric_prefix]}.#{generate_name_from_scenario(scenario)}"
 
         scenario[:steps].each.with_index do |step, step_index|
           if step.has_key?(:result) && step[:result].has_key?(:duration)
             has_step_durations = true
             step_duration = step[:result][:duration]
             step_duration = step_duration
-            metrics << {
-              :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.step-#{step_index + 1}.duration",
-              :value => step_duration
-            }
+            metrics << "#{scenario_metric_prefix}.step-#{step_index + 1}.duration #{step_duration}"
             scenario_duration += step_duration
           end
         end
 
         if has_step_durations
-          metrics.unshift({
-            :path => "#{config[:metrics_prefix]}.#{generate_name_from_scenario(scenario)}.duration",
-            :value => scenario_duration
-          })
+          scenario_metrics = [
+            "#{scenario_metric_prefix}.duration #{scenario_duration}",
+            "#{scenario_metric_prefix}.step-count #{scenario[:steps].length}"
+          ]
+          metrics.unshift scenario_metrics
         end
       end
+    end
+
+    if metrics.length == 0
+      metrics = nil
+    else
+      metrics = metrics.join("\n")
     end
 
     metrics
