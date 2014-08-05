@@ -109,6 +109,9 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     result = execute_cucumber
 
+    puts "Report: #{result[:report]}" if config[:debug]
+    puts "Exit status: #{result[:exit_status]}" if config[:debug]
+
     unless [0, 1].include? result[:exit_status]
       unknown "Cucumber returned exit code #{result[:exit_status]}"
       return
@@ -190,6 +193,8 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
         end
       end
     end
+
+    puts "Sensu events: #{JSON.pretty_generate(sensu_events)}" if config[:debug]
 
     raise_sensu_events sensu_events unless sensu_events.length == 0
 
