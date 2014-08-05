@@ -417,6 +417,14 @@ describe CheckCucumber do
       check_name = check_cucumber.generate_name_from_scenario(scenario)
       expect(check_name).to eq('text.text')
     end
+
+    describe 'when using a variant of Cucumber that includes profile names in the Cucumber report (e.g. parallel-cucumber)' do
+      it 'returns the scenario id and the profile name' do
+        scenario = {:id => 'text', :profile => 'example-profile'}
+        check_name = check_cucumber.generate_name_from_scenario(scenario)
+        expect(check_name).to eq('text.example-profile')
+      end
+    end
   end
 
   describe 'generate_metrics_from_scenario()' do
