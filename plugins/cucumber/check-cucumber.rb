@@ -218,10 +218,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   end
 
   def generate_name_from_scenario(scenario)
-    check_name = scenario[:id]
-    check_name += ";#{scenario[:profile]}" if scenario.has_key? :profile
+    name = scenario[:id]
+    name += ";#{scenario[:profile]}" if scenario.has_key? :profile
 
-    check_name = check_name.gsub(/\./, '-')
+    name = name.gsub(/\./, '-')
       .gsub(/;/, '.')
       .gsub(/[^a-zA-Z0-9\._-]/, '-')
       .gsub(/^\.+/, '')
@@ -230,7 +230,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     parts = []
 
-    check_name.split('.').each do |part|
+    name.split('.').each do |part|
       part = part.gsub(/^-+/, '')
         .gsub(/-+$/, '')
         .gsub(/-+/, '-')
@@ -238,8 +238,8 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       parts << part unless part.length == 0
     end
 
-    check_name = parts.join('.')
-    check_name
+    name = parts.join('.')
+    name
   end
 
   def raise_sensu_events(sensu_events)

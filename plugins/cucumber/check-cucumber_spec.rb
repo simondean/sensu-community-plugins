@@ -291,32 +291,32 @@ describe CheckCucumber do
   describe 'generate_name_from_scenario()' do
     it 'returns the scenario id' do
       scenario = {:id => 'text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text')
     end
 
     it 'replaces a period with a hyphen' do
       scenario = {:id => 'text.text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text-text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text-text')
     end
 
     it 'replaces a semi colon with a period' do
       scenario = {:id => 'text;text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text.text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text.text')
     end
 
     it 'replaces multiple semi colons with periods' do
       scenario = {:id => 'text;text;text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text.text.text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text.text.text')
     end
 
     it 'does not replace hyphens' do
       scenario = {:id => 'text-text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text-text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text-text')
     end
 
     it 'replaces every character (except letters, periods, hyphens and underscores) with hyphen' do
@@ -324,105 +324,105 @@ describe CheckCucumber do
       (1..254).each {|ascii_code| id += ascii_code.chr}
 
       scenario = {:id => id}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('0123456789.ABCDEFGHIJKLMNOPQRSTUVWXYZ-_-abcdefghijklmnopqrstuvwxyz')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('0123456789.ABCDEFGHIJKLMNOPQRSTUVWXYZ-_-abcdefghijklmnopqrstuvwxyz')
     end
 
     it 'avoid consecutive periods' do
       scenario = {:id => 'text;;text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text.text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text.text')
     end
 
     it 'removes a hyphen at the start' do
       scenario = {:id => '-text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text')
     end
 
     it 'removes multiple hyphens at the start' do
       scenario = {:id => '--text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text')
     end
 
     it 'removes a hyphen at the end' do
       scenario = {:id => 'text-'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text')
     end
 
     it 'removes multiple hyphens at the end' do
       scenario = {:id => 'text--'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text')
     end
 
     it 'replaces consecutive hyphens with a single hyphen' do
       scenario = {:id => 'text--text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text-text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text-text')
     end
 
     it 'removes a period at the start' do
       scenario = {:id => ';text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text')
     end
 
     it 'removes multiple periods at the start' do
       scenario = {:id => ';;text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text')
     end
 
     it 'removes a period at the end' do
       scenario = {:id => 'text;'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text')
     end
 
     it 'removes multiple periods at the end' do
       scenario = {:id => 'text;;'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text')
     end
 
     it 'replaces consecutive periods with a single period' do
       scenario = {:id => 'text;;text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text.text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text.text')
     end
 
     it 'removes a hyphen at the start of a part' do
       scenario = {:id => 'text;-text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text.text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text.text')
     end
 
     it 'removes multiple hyphens at the start of a part' do
       scenario = {:id => 'text;--text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text.text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text.text')
     end
 
     it 'removes a hyphen at the end of a part' do
       scenario = {:id => 'text;-text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text.text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text.text')
     end
 
     it 'removes multiple hyphens at the end of a part' do
       scenario = {:id => 'text;--text'}
-      check_name = check_cucumber.generate_name_from_scenario(scenario)
-      expect(check_name).to eq('text.text')
+      name = check_cucumber.generate_name_from_scenario(scenario)
+      expect(name).to eq('text.text')
     end
 
     describe 'when using a variant of Cucumber that includes profile names in the Cucumber report (e.g. parallel-cucumber)' do
       it 'returns the scenario id and the profile name' do
         scenario = {:id => 'text', :profile => 'example-profile'}
-        check_name = check_cucumber.generate_name_from_scenario(scenario)
-        expect(check_name).to eq('text.example-profile')
+        name = check_cucumber.generate_name_from_scenario(scenario)
+        expect(name).to eq('text.example-profile')
       end
     end
   end
