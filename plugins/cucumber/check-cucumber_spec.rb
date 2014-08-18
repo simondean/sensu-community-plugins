@@ -250,6 +250,7 @@ describe CheckCucumber do
                     expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
                       {:report => report.to_json, :exit_status => 0}
                     end
+                    expect(check_cucumber).to receive('raise_sensu_events') { [] }
                   end
 
                   it 'returns ok' do
@@ -264,6 +265,7 @@ describe CheckCucumber do
                     expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
                       {:report => report.to_json, :exit_status => 1}
                     end
+                    expect(check_cucumber).to receive('raise_sensu_events') { [] }
                   end
 
                   it 'returns ok' do
