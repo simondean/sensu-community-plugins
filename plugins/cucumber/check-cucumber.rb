@@ -155,26 +155,27 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
             scenario_report = [feature_clone]
 
             data = {
-              :status => scenario_status,
-              :report => scenario_report
+              'status' => scenario_status.to_s
             }
 
             event_name = "#{config[:name]}.#{generate_name_from_scenario(element)}"
 
+            scenario_status_code = case scenario_status
+              when :passed
+                OK
+              when :failed
+                CRITICAL
+              when :pending, :undefined
+                WARNING
+            end
+
             sensu_event = {
               :name => event_name,
               :handlers => [config[:handler]],
-              :output => data.to_json
+              :status => scenario_status_code,
+              :output => dump_yaml(data),
+              :report => scenario_report
             }
-
-            case scenario_status
-              when :passed
-                sensu_event[:status] = OK
-              when :failed
-                sensu_event[:status] = CRITICAL
-              when :pending, :undefined
-                sensu_event[:status] = WARNING
-            end
 
             sensu_events << sensu_event
 

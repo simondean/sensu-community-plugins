@@ -645,8 +645,7 @@ def generate_sensu_event(options = {})
       }
     else
       data = {
-        :status => options[:status],
-        :report => [feature]
+        'status' => options[:status].to_s
       }
 
       status_code_map = {
@@ -659,8 +658,9 @@ def generate_sensu_event(options = {})
       sensu_event = {
         :name => "example-name.Feature-#{feature_index}.scenario-#{scenario_index}",
         :handlers => ['example-handler'],
-        :output => data.to_json,
-        :status => status_code_map[options[:status]]
+        :status => status_code_map[options[:status]],
+        :output => dump_yaml(data),
+        :report => [feature]
       }
   end
 
@@ -697,7 +697,11 @@ def generate_output(options = {})
     output['errors'] = errors
   end
 
-  output.to_yaml.gsub(/^---\r?\n/, '')
+  dump_yaml(output)
+end
+
+def dump_yaml(data)
+  data.to_yaml.gsub(/^---\r?\n/, '')
 end
 
 def generate_unknown_error(message)
