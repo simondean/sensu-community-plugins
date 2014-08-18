@@ -229,7 +229,7 @@ describe CheckCucumber do
                       sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
                       sensu_events << generate_metric_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
                       expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
-                        [{:message => 'example-message-1'}]
+                        [{'message' => 'example-message-1'}]
                       end
                     end
 
@@ -673,28 +673,30 @@ end
 
 def generate_output(options = {})
   output = {
-    :status => options[:status] || :ok,
+    'status' => options[:status].to_s || 'ok',
   }
 
   [:scenarios, :passed, :failed, :pending, :undefined].each do |item|
-    output[item] = options[item] if options.has_key? item
+    output[item.to_s] = options[item] if options.has_key? item
   end
 
   if options.has_key? :errors
-    output[:errors] = []
+    errors = []
 
     Array(options[:errors]).each do |error|
       if error.is_a? String
-        output[:errors] << {
-          :message => error
+        errors << {
+          'message' => error
         }
       else
-        output[:errors] << error
+        errors << error
       end
     end
+
+    output['errors'] = errors
   end
 
-  output.to_json
+  output.to_yaml.gsub(/^---\r?\n/, '')
 end
 
 def generate_unknown_error(message)

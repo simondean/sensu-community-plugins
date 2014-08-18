@@ -22,6 +22,7 @@
 require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'sensu-plugin/check/cli'
 require 'json'
+require 'yaml'
 require 'socket'
 
 class CheckCucumber < Sensu::Plugin::Check::CLI
@@ -210,17 +211,17 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     end
 
     data = {
-      :status => outcome,
-      :scenarios => scenario_count
+      'status' => outcome.to_s,
+      'scenarios' => scenario_count
     }
 
     statuses.each do |status|
-      data[status] = status_counts[status] if status_counts[status] > 0
+      data[status.to_s] = status_counts[status] if status_counts[status] > 0
     end
 
-    data[:errors] = errors if has_errors
+    data['errors'] = errors if has_errors
 
-    data = data.to_json
+    data = dump_yaml(data)
 
     case outcome
       when :ok
@@ -267,10 +268,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
         send_sensu_event(data)
       rescue StandardError => error
         errors << {
-          :message => "Failed to raise event #{sensu_event[:name]}",
-          :error => {
-            :message => error.message,
-            :backtrace => error.backtrace
+          'message' => "Failed to raise event #{sensu_event[:name]}",
+          'error' => {
+            'message' => error.message,
+            'backtrace' => error.backtrace
           }
         }
       end
@@ -339,14 +340,18 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
   def unknown_error(message)
     data = {
-      :status => :unknown,
-      :errors => [
+      'status' => 'unknown',
+      'errors' => [
         {
-          :message => message
+          'message' => message
         }
       ]
     }
-    unknown data.to_json
+    unknown dump_yaml(data)
+  end
+
+  def dump_yaml(data)
+    data.to_yaml.gsub(/^---\r?\n/, '')
   end
 
 end
