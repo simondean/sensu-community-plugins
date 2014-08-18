@@ -234,7 +234,8 @@ describe CheckCucumber do
                     end
 
                     it 'returns unknown, with the scenario counts and the error' do
-                      expect(check_cucumber).to receive('unknown').with(generate_output(:status => :unknown, :scenarios => 1, :passed => 1, :errors => 'example-message-1'))
+                      expected_output = generate_output(:status => :unknown, :scenarios => 1, :passed => 1, :errors => 'example-message-1')
+                      expect(check_cucumber).to receive('unknown').with(expected_output)
                     end
                   end
 
