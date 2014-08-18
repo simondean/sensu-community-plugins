@@ -65,6 +65,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :long => '--debug',
     :boolean => true
 
+  def output(msg)
+    puts msg
+  end
+
   def execute_cucumber
     report = nil
 
@@ -77,32 +81,32 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
   def run
     if config[:name].nil?
-      unknown 'No name specified'
+      unknown_error 'No name specified'
       return
     end
 
     if config[:handler].nil?
-      unknown 'No handler specified'
+      unknown_error 'No handler specified'
       return
     end
 
     if config[:metric_handler].nil?
-      unknown 'No metric handler specified'
+      unknown_error 'No metric handler specified'
       return
     end
 
     if config[:metric_prefix].nil?
-      unknown 'No metric prefix specified'
+      unknown_error 'No metric prefix specified'
       return
     end
 
     if config[:command].nil?
-      unknown 'No cucumber command line specified'
+      unknown_error 'No cucumber command line specified'
       return
     end
 
     if config[:working_dir].nil?
-      unknown 'No working directory specified'
+      unknown_error 'No working directory specified'
       return
     end
 
@@ -112,13 +116,13 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     puts "Exit status: #{result[:exit_status]}" if config[:debug]
 
     unless [0, 1].include? result[:exit_status]
-      unknown "Cucumber returned exit code #{result[:exit_status]}"
+      unknown_error "Cucumber returned exit code #{result[:exit_status]}"
       return
     end
 
     report = JSON.parse(result[:report], :symbolize_names => true)
 
-    outcome = OK
+    outcome = :ok
     scenario_count = 0
     statuses = [:passed, :failed, :pending, :undefined]
     status_counts = {}
@@ -195,24 +199,36 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     puts "Sensu events: #{JSON.pretty_generate(sensu_events)}" if config[:debug]
 
-    raise_sensu_events sensu_events unless sensu_events.length == 0
+    errors = nil
+    errors = raise_sensu_events(sensu_events) unless sensu_events.length == 0
+    has_errors = !errors.nil? && errors.length > 0
 
-    message = "scenarios: #{scenario_count}"
-    statuses.each do |status|
-      message << ", #{status}: #{status_counts[status]}" unless status_counts[status] == 0
+    if has_errors
+      outcome = :unknown
+    elsif scenario_count == 0
+      outcome = :warning
     end
 
-    outcome = WARNING if scenario_count == 0
+    data = {
+      :status => outcome,
+      :scenarios => scenario_count
+    }
+
+    statuses.each do |status|
+      data[status] = status_counts[status] if status_counts[status] > 0
+    end
+
+    data[:errors] = errors if has_errors
+
+    data = data.to_json
 
     case outcome
-      when OK
-        ok message
-      when WARNING
-        warning message
-      when CRITICAL
-        critical message
-      when UNKNOWN
-        unknown message
+      when :ok
+        ok data
+      when :warning
+        warning data
+      when :unknown
+        unknown data
     end
   end
 
@@ -242,13 +258,40 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   end
 
   def raise_sensu_events(sensu_events)
+    errors = []
+
     sensu_events.each do |sensu_event|
       data = sensu_event.to_json
 
-      socket = UDPSocket.new
-      socket.send data, 0, '127.0.0.1', 3030
-      socket.close
+      begin
+        send_sensu_event(data)
+      rescue StandardError => error
+        errors << {
+          :message => "Failed to raise event #{sensu_event[:name]}",
+          :error => {
+            :message => error.message,
+            :backtrace => error.backtrace
+          }
+        }
+      end
     end
+
+    errors
+  end
+
+  def send_sensu_event(data)
+    socket = TCPSocket.new('127.0.0.1', 3030)
+    socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+
+    index = 0
+    length = data.length
+
+    while index < length
+      bytes_sent = socket.send data[index..-1], 0
+      index += bytes_sent
+    end
+
+    socket.close
   end
 
   def deep_dup(obj)
@@ -292,6 +335,18 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     end
 
     metrics
+  end
+
+  def unknown_error(message)
+    data = {
+      :status => :unknown,
+      :errors => [
+        {
+          :message => message
+        }
+      ]
+    }
+    unknown data.to_json
   end
 
 end

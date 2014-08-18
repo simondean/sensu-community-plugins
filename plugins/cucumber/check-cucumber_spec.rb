@@ -10,7 +10,7 @@ describe CheckCucumber do
 
   describe 'run()' do
     it 'returns unknown if no name is specified' do
-      expect(check_cucumber).to receive('unknown').with('No name specified')
+      expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No name specified'))
       check_cucumber.run
     end
 
@@ -20,7 +20,7 @@ describe CheckCucumber do
       end
 
       it 'returns unknown if no handler is specified' do
-        expect(check_cucumber).to receive('unknown').with('No handler specified')
+        expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No handler specified'))
         check_cucumber.run
       end
 
@@ -30,7 +30,7 @@ describe CheckCucumber do
         end
 
         it 'returns unknown if no metric handler is specified' do
-          expect(check_cucumber).to receive('unknown').with('No metric handler specified')
+          expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No metric handler specified'))
           check_cucumber.run
         end
 
@@ -40,7 +40,7 @@ describe CheckCucumber do
           end
 
           it 'returns unknown if no metric prefix is specified' do
-            expect(check_cucumber).to receive('unknown').with('No metric prefix specified')
+            expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No metric prefix specified'))
             check_cucumber.run
           end
 
@@ -50,7 +50,7 @@ describe CheckCucumber do
             end
 
             it 'returns unknown if no cucumber command line is specified' do
-              expect(check_cucumber).to receive('unknown').with('No cucumber command line specified')
+              expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No cucumber command line specified'))
               check_cucumber.run
             end
 
@@ -60,7 +60,7 @@ describe CheckCucumber do
               end
 
               it 'returns unknown if no working dir is specified' do
-                expect(check_cucumber).to receive('unknown').with('No working directory specified')
+                expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No working directory specified'))
                 check_cucumber.run
               end
 
@@ -82,7 +82,7 @@ describe CheckCucumber do
 
                   describe 'when there are no scenarios' do
                     it 'returns warning' do
-                      expect(check_cucumber).to receive('warning').with('scenarios: 0')
+                      expect(check_cucumber).to receive('warning').with(generate_output(:status => :warning, :scenarios => 0))
                     end
 
                     it 'does not raise any events' do
@@ -96,7 +96,7 @@ describe CheckCucumber do
                     end
 
                     it 'returns ok' do
-                      expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
                     end
 
                     it 'raises an ok event' do
@@ -111,7 +111,7 @@ describe CheckCucumber do
                     end
 
                     it 'returns ok' do
-                      expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
                     end
 
                     it 'raises an ok event and a metric events' do
@@ -128,7 +128,7 @@ describe CheckCucumber do
                     end
 
                     it 'returns ok' do
-                      expect(check_cucumber).to receive('ok').with('scenarios: 1, failed: 1')
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :failed => 1))
                     end
 
                     it 'raises a critical event' do
@@ -143,7 +143,7 @@ describe CheckCucumber do
                     end
 
                     it 'returns ok' do
-                      expect(check_cucumber).to receive('ok').with('scenarios: 1, pending: 1')
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :pending => 1))
                     end
 
                     it 'raises a warning event' do
@@ -158,7 +158,7 @@ describe CheckCucumber do
                     end
 
                     it 'returns ok' do
-                      expect(check_cucumber).to receive('ok').with('scenarios: 1, undefined: 1')
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :undefined => 1))
                     end
 
                     it 'raises a warning event' do
@@ -173,7 +173,7 @@ describe CheckCucumber do
                     end
 
                     it 'returns ok' do
-                      expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
                     end
 
                     it 'raises an ok event' do
@@ -189,7 +189,7 @@ describe CheckCucumber do
                     end
 
                     it 'returns ok' do
-                      expect(check_cucumber).to receive('ok').with('scenarios: 2, passed: 2')
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 2, :passed => 2))
                     end
 
                     it 'raises multiple ok events and multiple metric events' do
@@ -209,7 +209,7 @@ describe CheckCucumber do
                     end
 
                     it 'returns ok' do
-                      expect(check_cucumber).to receive('ok').with('scenarios: 2, passed: 2')
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 2, :passed => 2))
                     end
 
                     it 'raises multiple ok events and multiple metric events' do
@@ -219,6 +219,22 @@ describe CheckCucumber do
                       sensu_events << generate_sensu_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
                       sensu_events << generate_metric_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
                       expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                    end
+                  end
+
+                  describe 'when there is an error raising an event' do
+                    before(:each) do
+                      report << generate_feature(:scenarios => [{:step_statuses => :passed}])
+                      sensu_events = []
+                      sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
+                      sensu_events << generate_metric_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                        [{:message => 'example-message-1'}]
+                      end
+                    end
+
+                    it 'returns unknown, with the scenario counts and the error' do
+                      expect(check_cucumber).to receive('unknown').with(generate_output(:status => :unknown, :scenarios => 1, :passed => 1, :errors => 'example-message-1'))
                     end
                   end
 
@@ -236,7 +252,7 @@ describe CheckCucumber do
                   end
 
                   it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                    expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
                     check_cucumber.run
                   end
                 end
@@ -250,7 +266,7 @@ describe CheckCucumber do
                   end
 
                   it 'returns ok' do
-                    expect(check_cucumber).to receive('ok').with('scenarios: 1, passed: 1')
+                    expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
                     check_cucumber.run
                   end
                 end
@@ -263,7 +279,7 @@ describe CheckCucumber do
                   end
 
                   it 'returns unknown' do
-                    expect(check_cucumber).to receive('unknown').with('Cucumber returned exit code -1')
+                    expect(check_cucumber).to receive('unknown').with(generate_unknown_error('Cucumber returned exit code -1'))
                     check_cucumber.run
                   end
                 end
@@ -276,7 +292,7 @@ describe CheckCucumber do
                   end
 
                   it 'returns unknown' do
-                    expect(check_cucumber).to receive('unknown').with('Cucumber returned exit code 2')
+                    expect(check_cucumber).to receive('unknown').with(generate_unknown_error('Cucumber returned exit code 2'))
                     check_cucumber.run
                   end
                 end
@@ -653,4 +669,34 @@ end
 def generate_metric_event(options = {})
   options[:type] = :metric
   generate_sensu_event(options)
+end
+
+def generate_output(options = {})
+  output = {
+    :status => options[:status] || :ok,
+  }
+
+  [:scenarios, :passed, :failed, :pending, :undefined].each do |item|
+    output[item] = options[item] if options.has_key? item
+  end
+
+  if options.has_key? :errors
+    output[:errors] = []
+
+    Array(options[:errors]).each do |error|
+      if error.is_a? String
+        output[:errors] << {
+          :message => error
+        }
+      else
+        output[:errors] << error
+      end
+    end
+  end
+
+  output.to_json
+end
+
+def generate_unknown_error(message)
+  generate_output(:status => :unknown, :errors => message)
 end
