@@ -21,6 +21,7 @@
 
 require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'sensu-plugin/check/cli'
+require 'optparse'
 require 'json'
 require 'yaml'
 require 'socket'
@@ -60,6 +61,18 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :description => "Working directory to use with Cucumber",
     :short => '-w WORKING_DIR',
     :long => '--working-dir WORKING_DIR'
+
+  option :env,
+    :description => "Environment variable to pass to Cucumber. Can be specified more than once to set multiple environment variables",
+    :short => '-n NAME=VALUE',
+    :long => '--env NAME=VALUE',
+    :proc =>
+      lambda do |c|
+        @env ||= {}
+        name, value = c.split('=', 2)
+        @env[name] = value
+        @env
+      end
 
   option :debug,
     :description => "Print debug information",
