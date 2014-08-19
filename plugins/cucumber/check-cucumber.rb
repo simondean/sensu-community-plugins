@@ -154,8 +154,27 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
             feature_clone[:elements] = [deep_dup(element)]
             scenario_report = [feature_clone]
 
-            data = {
-              'status' => scenario_status.to_s
+            steps_output = []
+
+            if element.has_key?(:steps)
+              element[:steps].each_with_index do |step, index|
+                has_result = step.has_key?(:result)
+                step_status = has_result ? step[:result][:status] : ''
+                step_output = {
+                  'step' => "#{step_status.upcase} - #{index + 1} - #{step[:keyword]}#{step[:name]}"
+                }
+
+                if has_result && step[:result].has_key?(:error_message)
+                  step_output['error'] = step[:result][:error_message]
+                end
+
+                steps_output << step_output
+              end
+            end
+
+            scenario_output = {
+              'status' => scenario_status.to_s,
+              'steps' => steps_output
             }
 
             event_name = "#{config[:name]}.#{generate_name_from_scenario(element)}"
@@ -173,7 +192,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
               :name => event_name,
               :handlers => [config[:handler]],
               :status => scenario_status_code,
-              :output => dump_yaml(data),
+              :output => dump_yaml(scenario_output),
               :report => scenario_report
             }
 

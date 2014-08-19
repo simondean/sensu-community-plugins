@@ -584,7 +584,7 @@ def generate_feature(options = {})
 
     Array(scenario_options[:step_statuses]).each do |step_status|
       scenario[:steps] << {
-        :name => "a passing pre-condition",
+        :name => "example step",
         :line => 4 + step_index,
         :keyword => "Given ",
         :result => {
@@ -615,8 +615,6 @@ def generate_sensu_event(options = {})
   scenarios = feature[:elements].select {|element| element[:type] == 'scenario'}
   scenario = scenarios[scenario_index]
   feature[:elements] = [scenario]
-
-  sensu_event = nil
 
   case options[:type]
     when :metric
@@ -649,6 +647,16 @@ def generate_sensu_event(options = {})
       data = {
         'status' => options[:status].to_s
       }
+
+      steps = []
+
+      scenario[:steps].each_with_index do |step, index|
+        steps << {
+          'step' => "#{step[:result][:status].upcase} - #{index + 1} - #{step[:keyword]}#{step[:name]}"
+        }
+      end
+
+      data['steps'] = steps
 
       status_code_map = {
         :passed => 0,
