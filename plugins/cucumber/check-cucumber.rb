@@ -85,8 +85,9 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
   def execute_cucumber
     report = nil
+    env = config[:env] || {}
 
-    IO.popen(config[:command], :chdir => config[:working_dir]) do |io|
+    IO.popen(env, config[:command], :chdir => config[:working_dir]) do |io|
       report = io.read
     end
 
