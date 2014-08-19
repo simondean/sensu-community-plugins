@@ -7,6 +7,6 @@ module.exports = function() {
   });
 
   function create5MegabyteBuffer() {
-    return new Buffer(5 * 1024 * 1024);
+    return new Buffer(1024 * 1024);
   }
 };
