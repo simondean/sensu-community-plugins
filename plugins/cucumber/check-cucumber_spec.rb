@@ -70,6 +70,12 @@ describe CheckCucumber do
                   check_cucumber.config[:working_dir] = 'example-working-dir'
                 end
 
+                it 'returns unknown if the attachments argument is not boolean' do
+                  check_cucumber.config[:attachments] = 'example'
+                  expect(check_cucumber).to receive('unknown').with(generate_unknown_error('Attachments argument is not a valid boolean'))
+                  check_cucumber.run
+                end
+
                 describe 'when cucumber executes and provides a report' do
                   report = nil
 
@@ -119,7 +125,7 @@ describe CheckCucumber do
                       expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
                     end
 
-                    it 'raises an ok event and a metric events' do
+                    it 'raises an ok event and a metric event' do
                       sensu_events = []
                       sensu_events << generate_sensu_event(:status => :passed, :report => report)
                       sensu_events << generate_metric_event(:status => :passed, :report => report)
@@ -268,7 +274,7 @@ describe CheckCucumber do
                       expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
                     end
 
-                    it 'raises an ok event and a metric events' do
+                    it 'raises an ok event and a metric event' do
                       sensu_events = []
                       sensu_events << generate_sensu_event(:status => :passed, :report => report)
                       sensu_events << generate_metric_event(:status => :passed, :report => report)
@@ -287,7 +293,7 @@ describe CheckCucumber do
                       expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
                     end
 
-                    it 'raises an ok event and a metric events' do
+                    it 'raises an ok event and a metric event' do
                       sensu_events = []
                       sensu_events << generate_sensu_event(:name => 'example-name.Feature-0.scenario-0.example-profile',
                                                            :status => :passed, :report => report)
@@ -296,6 +302,53 @@ describe CheckCucumber do
                                                             :status => :passed, :report => report)
                       expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
                         []
+                      end
+                    end
+                  end
+
+                  describe 'when the Cucumber report has attachments' do
+                    before(:each) do
+                      report << generate_feature(:scenarios => [{:step_statuses => :passed,
+                                                                 :step_attachments => [{:data => 'example-data',
+                                                                                        :mime_type => 'text/plain'}]}])
+                    end
+
+                    describe 'when configured to include attachments in events' do
+                      before(:each) do
+                        check_cucumber.config[:attachments] = true
+                      end
+
+                      it 'returns ok' do
+                        expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
+                      end
+
+                      it 'raises an ok event and a metric event' do
+                        sensu_events = []
+                        sensu_events << generate_sensu_event(:status => :passed, :report => report)
+                        sensu_events << generate_metric_event(:status => :passed, :report => report)
+                        expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                          []
+                        end
+                      end
+                    end
+
+                    describe 'when configured not to include attachments in events' do
+                      before(:each) do
+                        check_cucumber.config[:attachments] = false
+                      end
+
+                      it 'returns ok' do
+                        expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
+                      end
+
+                      it 'raises an ok event and a metric event' do
+                        sensu_events = []
+                        sensu_events << generate_sensu_event(:exclude_attachments => true,
+                                                             :status => :passed, :report => report)
+                        sensu_events << generate_metric_event(:status => :passed, :report => report)
+                        expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                          []
+                        end
                       end
                     end
                   end
@@ -739,9 +792,10 @@ def generate_feature(options = {})
     :line => 1,
     :keyword => "Feature",
     :uri => "features/feature-#{feature_index}.feature",
-    :elements => [],
-    :profile => options[:profile]
+    :elements => []
   }
+
+  feature[:profile] = options[:profile] unless options[:profile].nil?
 
   if options[:has_background]
     feature[:elements] << {
@@ -773,10 +827,8 @@ def generate_feature(options = {})
       :steps => []
     }
 
-    step_index = 0
-
-    Array(scenario_options[:step_statuses]).each do |step_status|
-      scenario[:steps] << {
+    Array(scenario_options[:step_statuses]).each_with_index do |step_status, step_index|
+      step = {
         :name => "example step",
         :line => 4 + step_index,
         :keyword => "Given ",
@@ -786,7 +838,18 @@ def generate_feature(options = {})
         },
         :match => {}
       }
-      step_index += 1
+
+      if scenario_options.has_key?(:step_attachments)
+        step_attachment_options = scenario_options[:step_attachments][step_index]
+        step[:result][:embeddings] = [
+          {
+            :mime_type => step_attachment_options[:mime_type],
+            :data => step_attachment_options[:data]
+          }
+        ]
+      end
+
+      scenario[:steps] << step
     end
 
     feature[:elements] << scenario
@@ -868,6 +931,14 @@ def generate_sensu_event(options = {})
         :output => dump_yaml(data),
         :report => [feature]
       }
+
+      if options[:exclude_attachments]
+        sensu_event[:report][0][:elements].each do |element|
+          element[:steps].each do |step|
+            step[:result][:embeddings] = []
+          end
+        end
+      end
   end
 
   sensu_event

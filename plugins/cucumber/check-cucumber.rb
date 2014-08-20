@@ -76,6 +76,12 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :long => '--env NAME=VALUE',
     :proc => process_env_option
 
+  option :attachments,
+    :description => "Specifies whether Cucumber attachments should be included in sensu events. " +
+        "Cucumber attachments can be multi-megabyte if they include screenshots",
+    :short => '-a BOOLEAN',
+    :long => '--attachments BOOLEAN'
+
   option :debug,
     :description => "Print debug information",
     :long => '--debug',
@@ -127,6 +133,13 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       return
     end
 
+    config[:attachments] = true if config[:attachments].nil?
+
+    unless [TrueClass, FalseClass].include? config[:attachments].class
+      unknown_error 'Attachments argument is not a valid boolean'
+      return
+    end
+
     result = execute_cucumber
 
     puts "Report: #{result[:report]}" if config[:debug]
@@ -166,8 +179,18 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
               end
             end
 
+            element_clone = deep_dup(element)
+
+            unless config[:attachments]
+              element_clone[:steps].each do |step|
+                if step[:result].has_key?(:embeddings)
+                  step[:result][:embeddings] = []
+                end
+              end
+            end
+
             feature_clone = deep_dup(feature)
-            feature_clone[:elements] = [deep_dup(element)]
+            feature_clone[:elements] = [element_clone]
             scenario_report = [feature_clone]
 
             steps_output = []
