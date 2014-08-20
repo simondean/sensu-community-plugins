@@ -87,21 +87,6 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :long => '--debug',
     :boolean => true
 
-  def output(msg)
-    puts msg
-  end
-
-  def execute_cucumber
-    report = nil
-    env = config[:env] || {}
-
-    IO.popen(env, config[:command], :chdir => config[:working_dir]) do |io|
-      report = io.read
-    end
-
-    {:report => report, :exit_status => $?.exitstatus}
-  end
-
   def run
     if config[:name].nil?
       unknown_error 'No name specified'
@@ -339,25 +324,6 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     errors
   end
 
-  def send_sensu_event(data)
-    socket = TCPSocket.new('127.0.0.1', 3030)
-    socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-
-    index = 0
-    length = data.length
-
-    while index < length
-      bytes_sent = socket.send data[index..-1], 0
-      index += bytes_sent
-    end
-
-    socket.close
-  end
-
-  def deep_dup(obj)
-    Marshal.load(Marshal.dump(obj))
-  end
-
   def generate_metrics_from_scenario(feature, scenario, scenario_status, utc_timestamp)
     metrics = []
 
@@ -397,6 +363,38 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     metrics
   end
 
+  private
+
+  def output(msg)
+    puts msg
+  end
+
+  def execute_cucumber
+    report = nil
+    env = config[:env] || {}
+
+    IO.popen(env, config[:command], :chdir => config[:working_dir]) do |io|
+      report = io.read
+    end
+
+    {:report => report, :exit_status => $?.exitstatus}
+  end
+
+  def send_sensu_event(data)
+    socket = TCPSocket.new('127.0.0.1', 3030)
+    socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+
+    index = 0
+    length = data.length
+
+    while index < length
+      bytes_sent = socket.send data[index..-1], 0
+      index += bytes_sent
+    end
+
+    socket.close
+  end
+
   def unknown_error(message)
     data = {
       'status' => 'unknown',
@@ -407,6 +405,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       ]
     }
     unknown dump_yaml(data)
+  end
+
+  def deep_dup(obj)
+    Marshal.load(Marshal.dump(obj))
   end
 
   def dump_yaml(data)
