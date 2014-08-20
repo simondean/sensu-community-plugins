@@ -62,17 +62,19 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :short => '-w WORKING_DIR',
     :long => '--working-dir WORKING_DIR'
 
+  process_env_option =
+    lambda do |c|
+      @env ||= {}
+      name, value = c.split('=', 2)
+      @env[name] = value
+      @env
+    end
+
   option :env,
     :description => "Environment variable to pass to Cucumber. Can be specified more than once to set multiple environment variables",
     :short => '-n NAME=VALUE',
     :long => '--env NAME=VALUE',
-    :proc =>
-      lambda do |c|
-        @env ||= {}
-        name, value = c.split('=', 2)
-        @env[name] = value
-        @env
-      end
+    :proc => process_env_option
 
   option :debug,
     :description => "Print debug information",

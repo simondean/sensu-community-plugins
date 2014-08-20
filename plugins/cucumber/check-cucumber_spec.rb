@@ -77,6 +77,7 @@ describe CheckCucumber do
                     expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
                       {:report => report.to_json, :exit_status => 0}
                     end
+                    check_cucumber.stub(:send_sensu_event) {}
                     Time.stub_chain(:now, :getutc, :to_i) {123}
                   end
 
@@ -239,6 +240,24 @@ describe CheckCucumber do
                     end
                   end
 
+                  describe 'when the Cucumber report JSON contains a UTF-8 character' do
+                    before(:each) do
+                      report << generate_feature(:feature_description => "Contains the \u2190 leftwards arrow character".encode('utf-8'), :scenarios => [{:step_statuses => :passed}])
+                      puts report
+                    end
+
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
+                    end
+
+                    it 'raises an ok event and a metric events' do
+                      sensu_events = []
+                      sensu_events << generate_sensu_event(:status => :passed, :report => report)
+                      sensu_events << generate_metric_event(:status => :passed, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                    end
+                  end
+
                   after(:each) do
                     check_cucumber.run
                   end
@@ -250,7 +269,9 @@ describe CheckCucumber do
                     expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
                       {:report => report.to_json, :exit_status => 0}
                     end
-                    expect(check_cucumber).to receive('raise_sensu_events') { [] }
+                    expect(check_cucumber).to receive('raise_sensu_events') do
+                      []
+                    end
                   end
 
                   it 'returns ok' do
@@ -543,7 +564,7 @@ def generate_feature(options = {})
   feature = {
     :id => "Feature-#{feature_index}",
     :name => "Feature #{feature_index}",
-    :description => "This is Feature #{feature_index}",
+    :description => options[:feature_description] || "This is Feature #{feature_index}",
     :line => 1,
     :keyword => "Feature",
     :uri => "features/feature-#{feature_index}.feature",
