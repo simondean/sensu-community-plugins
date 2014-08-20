@@ -6,6 +6,7 @@ describe CheckCucumber do
 
   before(:each) do
     check_cucumber = CheckCucumber.new
+    check_cucumber.stub(:send_sensu_event) {}
   end
 
   describe 'run()' do
@@ -77,7 +78,6 @@ describe CheckCucumber do
                     expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
                       {:report => report.to_json, :exit_status => 0}
                     end
-                    check_cucumber.stub(:send_sensu_event) {}
                     Time.stub_chain(:now, :getutc, :to_i) {123}
                   end
 
@@ -87,7 +87,9 @@ describe CheckCucumber do
                     end
 
                     it 'does not raise any events' do
-                      expect(check_cucumber).to_not receive('raise_sensu_events')
+                      expect(check_cucumber).to receive('raise_sensu_events').with([]) do
+                        []
+                      end
                     end
                   end
 
@@ -102,7 +104,9 @@ describe CheckCucumber do
 
                     it 'raises an ok event' do
                       sensu_event = generate_sensu_event(:status => :passed, :report => report)
-                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
+                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event]) do
+                        []
+                      end
                     end
                   end
 
@@ -119,7 +123,9 @@ describe CheckCucumber do
                       sensu_events = []
                       sensu_events << generate_sensu_event(:status => :passed, :report => report)
                       sensu_events << generate_metric_event(:status => :passed, :report => report)
-                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                        []
+                      end
                     end
                   end
 
@@ -134,7 +140,9 @@ describe CheckCucumber do
 
                     it 'raises a critical event' do
                       sensu_event = generate_sensu_event(:status => :failed, :report => report)
-                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
+                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event]) do
+                        []
+                      end
                     end
                   end
 
@@ -149,7 +157,9 @@ describe CheckCucumber do
 
                     it 'raises a warning event' do
                       sensu_event = generate_sensu_event(:status => :pending, :report => report)
-                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
+                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event]) do
+                        []
+                      end
                     end
                   end
 
@@ -164,7 +174,9 @@ describe CheckCucumber do
 
                     it 'raises a warning event' do
                       sensu_event = generate_sensu_event(:status => :undefined, :report => report)
-                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event])
+                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event]) do
+                        []
+                      end
                     end
                   end
 
@@ -180,7 +192,9 @@ describe CheckCucumber do
                     it 'raises an ok event' do
                       sensu_events = []
                       sensu_events << generate_sensu_event(:status => :passed, :report => report)
-                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                        []
+                      end
                     end
                   end
 
@@ -199,7 +213,9 @@ describe CheckCucumber do
                       sensu_events << generate_metric_event(:status => :passed, :scenario_index => 0, :report => report)
                       sensu_events << generate_sensu_event(:status => :passed, :scenario_index => 1, :report => report)
                       sensu_events << generate_metric_event(:status => :passed, :scenario_index => 1, :report => report)
-                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                        []
+                      end
                     end
                   end
 
@@ -219,7 +235,9 @@ describe CheckCucumber do
                       sensu_events << generate_metric_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
                       sensu_events << generate_sensu_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
                       sensu_events << generate_metric_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
-                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                        []
+                      end
                     end
                   end
 
@@ -242,8 +260,8 @@ describe CheckCucumber do
 
                   describe 'when the Cucumber report JSON contains a UTF-8 character' do
                     before(:each) do
-                      report << generate_feature(:feature_description => "Contains the \u2190 leftwards arrow character".encode('utf-8'), :scenarios => [{:step_statuses => :passed}])
-                      puts report
+                      report << generate_feature(:feature_description => "Contains the \\u2190 leftwards arrow character".encode('utf-8'),
+                                                 :scenarios => [{:step_statuses => :passed}])
                     end
 
                     it 'returns ok' do
@@ -254,7 +272,9 @@ describe CheckCucumber do
                       sensu_events = []
                       sensu_events << generate_sensu_event(:status => :passed, :report => report)
                       sensu_events << generate_metric_event(:status => :passed, :report => report)
-                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                        []
+                      end
                     end
                   end
 
@@ -286,7 +306,9 @@ describe CheckCucumber do
                     expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
                       {:report => report.to_json, :exit_status => 1}
                     end
-                    expect(check_cucumber).to receive('raise_sensu_events') { [] }
+                    expect(check_cucumber).to receive('raise_sensu_events') do
+                      []
+                    end
                   end
 
                   it 'returns ok' do
@@ -557,6 +579,124 @@ describe CheckCucumber do
       expect(metrics).to be_nil
     end
   end
+
+  describe 'raise_sensu_events()' do
+    describe 'when there are no events' do
+      it 'does not call send_sensu_event() and returns no errors' do
+        events = []
+        expect(check_cucumber).to_not receive('send_sensu_event')
+        errors = check_cucumber.raise_sensu_events(events)
+        expect(errors).to be_empty
+      end
+    end
+
+    describe 'when there is 1 event' do
+      it 'calls send_sensu_event() once and returns no errors' do
+        events = [{:name => 'example-event-1'}]
+        expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-1"}')
+        errors = check_cucumber.raise_sensu_events(events)
+        expect(errors).to be_empty
+      end
+    end
+
+    describe 'when there is more than 1 event' do
+      it 'calls send_sensu_event() multiple times and returns no errors' do
+        events = [{:name => 'example-event-1'}, {:name => 'example-event-2'}]
+        expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-1"}').ordered
+        expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-2"}').ordered
+        errors = check_cucumber.raise_sensu_events(events)
+        expect(errors).to be_empty
+      end
+    end
+
+    describe 'when sending an event raises a standard error' do
+      it 'returns the error' do
+        events = [{:name => 'example-event-1'}]
+        expected_errors = [{
+          'message' => 'Failed to raise event example-event-1',
+          'error' => {
+            'message' => 'example-standard-error-1',
+            'backtrace' => '<backtrace>'
+          }
+        }]
+        expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-1"}') do
+          raise StandardError, 'example-standard-error-1'
+        end
+        errors = check_cucumber.raise_sensu_events(events)
+        normalize_errors errors
+        expect(errors).to match_array(expected_errors)
+      end
+    end
+
+    describe 'when sending an event raises a connection refused error' do
+      it 'returns the error' do
+        events = [{:name => 'example-event-1'}]
+        expected_errors = [{
+          'message' => 'Failed to raise event example-event-1',
+          'error' => {
+            'message' => 'Connection refused - example-connection-refused-error-1',
+            'backtrace' => '<backtrace>'
+          }
+        }]
+        expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-1"}') do
+          raise Errno::ECONNREFUSED, 'example-connection-refused-error-1'
+        end
+        errors = check_cucumber.raise_sensu_events(events)
+        normalize_errors errors
+        expect(errors).to match_array(expected_errors)
+      end
+    end
+
+    describe 'when sending an event raises a broken pipe error' do
+      it 'returns the error' do
+        events = [{:name => 'example-event-1'}]
+        expected_errors = [{
+          'message' => 'Failed to raise event example-event-1',
+          'error' => {
+            'message' => 'Broken pipe - example-broken-pipe-error-1',
+            'backtrace' => '<backtrace>'
+          }
+        }]
+        expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-1"}') do
+          raise Errno::EPIPE, 'example-broken-pipe-error-1'
+        end
+        errors = check_cucumber.raise_sensu_events(events)
+        normalize_errors errors
+        expect(errors).to match_array(expected_errors)
+      end
+    end
+
+    describe 'when sending multiple events raises multiple standard errors' do
+      it 'returns the error' do
+        events = [{:name => 'example-event-1'}, {:name => 'example-event-2'}]
+        expected_errors = [
+          {
+            'message' => 'Failed to raise event example-event-1',
+            'error' => {
+              'message' => 'example-standard-error-1',
+              'backtrace' => '<backtrace>'
+            }
+          },
+          {
+            'message' => 'Failed to raise event example-event-2',
+            'error' => {
+              'message' => 'example-standard-error-2',
+              'backtrace' => '<backtrace>'
+            }
+          }
+        ]
+        expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-1"}').ordered do
+          raise StandardError, 'example-standard-error-1'
+        end
+        expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-2"}').ordered do
+          raise StandardError, 'example-standard-error-2'
+        end
+        errors = check_cucumber.raise_sensu_events(events)
+        normalize_errors errors
+        expect(errors).to match_array(expected_errors)
+      end
+    end
+  end
 end
 
 def generate_feature(options = {})
@@ -737,4 +877,10 @@ end
 
 def generate_unknown_error(message)
   generate_output(:status => :unknown, :errors => message)
+end
+
+def normalize_errors(errors)
+  errors.each do |error|
+    error['error']['backtrace'] = '<backtrace>' if error['error'].has_key? 'backtrace'
+  end
 end

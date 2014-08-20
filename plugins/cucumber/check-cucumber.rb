@@ -236,11 +236,9 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
     puts "Sensu events: #{JSON.pretty_generate(sensu_events)}" if config[:debug]
 
-    errors = nil
-    errors = raise_sensu_events(sensu_events) unless sensu_events.length == 0
-    has_errors = !errors.nil? && errors.length > 0
+    errors = raise_sensu_events(sensu_events)
 
-    if has_errors
+    if errors.length > 0
       outcome = :unknown
     elsif scenario_count == 0
       outcome = :warning
@@ -255,7 +253,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       data[status.to_s] = status_counts[status] if status_counts[status] > 0
     end
 
-    data['errors'] = errors if has_errors
+    data['errors'] = errors if errors.length > 0
 
     data = dump_yaml(data)
 
