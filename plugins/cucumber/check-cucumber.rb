@@ -198,7 +198,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
             if element.has_key?(:steps)
               element[:steps].each_with_index do |step, index|
                 has_result = step.has_key?(:result)
-                step_status = has_result ? step[:result][:status] : ''
+                step_status = has_result ? step[:result][:status] : 'UNKNOWN'
                 step_output = {
                   'step' => "#{step_status.upcase} - #{index + 1} - #{step[:keyword]}#{step[:name]}"
                 }

@@ -87,7 +87,7 @@ describe CheckCucumber do
                     Time.stub_chain(:now, :getutc, :to_i) {123}
                   end
 
-                  describe 'when there are no scenarios' do
+                  describe 'when there are no features' do
                     it 'returns warning' do
                       expect(check_cucumber).to receive('warning').with(generate_output(:status => :warning, :scenarios => 0))
                     end
@@ -99,9 +99,29 @@ describe CheckCucumber do
                     end
                   end
 
-                  describe 'when there are no steps' do
+                  describe 'when there are no scenarios' do
                     before(:each) do
-                      report << generate_feature(:scenarios => [{:step_statuses => []}])
+                      feature = generate_feature()
+                      feature.delete :elements
+                      report << feature
+                    end
+
+                    it 'returns warning' do
+                      expect(check_cucumber).to receive('warning').with(generate_output(:status => :warning, :scenarios => 0))
+                    end
+
+                    it 'does not raise any events' do
+                      expect(check_cucumber).to receive('raise_sensu_events').with([]) do
+                        []
+                      end
+                    end
+                  end
+
+                  describe 'when there is a scenario with no steps' do
+                    before(:each) do
+                      feature = generate_feature(:scenarios => [{:step_statuses => []}])
+                      feature[:elements][0].delete :steps
+                      report << feature
                     end
 
                     it 'returns ok' do
@@ -130,6 +150,25 @@ describe CheckCucumber do
                       sensu_events << generate_sensu_event(:status => :passed, :report => report)
                       sensu_events << generate_metric_event(:status => :passed, :report => report)
                       expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                        []
+                      end
+                    end
+                  end
+
+                  describe 'when there is a step with no result' do
+                    before(:each) do
+                      feature = generate_feature(:scenarios => [{:step_statuses => :passed}])
+                      feature[:elements][0][:steps][0].delete :result
+                      report << feature
+                    end
+
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
+                    end
+
+                    it 'raises an ok event and a metric event' do
+                      sensu_event = generate_sensu_event(:status => :passed, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with([sensu_event]) do
                         []
                       end
                     end
@@ -878,18 +917,24 @@ def generate_sensu_event(options = {})
       name = options[:name] || "example-name.Feature-#{feature_index}.scenario-#{scenario_index}.metrics"
       metrics = []
 
-      if options[:status] == :passed && scenario.has_key?(:steps) && scenario[:steps].length > 0
+      if options[:status] == :passed
         scenario_duration = 0
+        has_durations = false
 
         scenario[:steps].each.with_index do |step, step_index|
-          metrics << "#{metric_prefix}.step-#{step_index + 1}.duration #{step[:result][:duration]} 123"
-          scenario_duration += step[:result][:duration]
+          if step.has_key?(:result)
+            metrics << "#{metric_prefix}.step-#{step_index + 1}.duration #{step[:result][:duration]} 123"
+            scenario_duration += step[:result][:duration]
+            has_durations = true
+          end
         end
 
-        metrics.unshift([
-          "#{metric_prefix}.duration #{scenario_duration} 123",
-          "#{metric_prefix}.step-count #{scenario[:steps].length} 123"
-        ])
+        if has_durations
+          metrics.unshift([
+            "#{metric_prefix}.duration #{scenario_duration} 123",
+            "#{metric_prefix}.step-count #{scenario[:steps].length} 123"
+          ])
+        end
       end
 
       metrics = metrics.join("\n")
@@ -909,9 +954,11 @@ def generate_sensu_event(options = {})
 
       steps = []
 
-      scenario[:steps].each_with_index do |step, index|
+      Array(scenario[:steps]).each_with_index do |step, index|
+        status = step.has_key?(:result) ? step[:result][:status] : 'unknown'
+
         steps << {
-          'step' => "#{step[:result][:status].upcase} - #{index + 1} - #{step[:keyword]}#{step[:name]}"
+          'step' => "#{status.upcase} - #{index + 1} - #{step[:keyword]}#{step[:name]}"
         }
       end
 
