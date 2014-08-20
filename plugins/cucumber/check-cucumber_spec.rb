@@ -278,6 +278,28 @@ describe CheckCucumber do
                     end
                   end
 
+                  describe 'when using a variant of Cucumber that includes profile names in the Cucumber report (e.g. parallel-cucumber)' do
+                    before(:each) do
+                      report << generate_feature(:profile => 'example-profile', :scenarios => [{:step_statuses => :passed}])
+                    end
+
+                    it 'returns ok' do
+                      expect(check_cucumber).to receive('ok').with(generate_output(:status => :ok, :scenarios => 1, :passed => 1))
+                    end
+
+                    it 'raises an ok event and a metric events' do
+                      sensu_events = []
+                      sensu_events << generate_sensu_event(:name => 'example-name.Feature-0.scenario-0.example-profile',
+                                                           :status => :passed, :report => report)
+                      sensu_events << generate_metric_event(:name => 'example-name.Feature-0.scenario-0.example-profile.metrics',
+                                                            :metric_prefix => 'example-metric-prefix.Feature-0.scenario-0.example-profile',
+                                                            :status => :passed, :report => report)
+                      expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+                        []
+                      end
+                    end
+                  end
+
                   after(:each) do
                     check_cucumber.run
                   end
@@ -351,33 +373,39 @@ describe CheckCucumber do
   end
 
   describe 'generate_name_from_scenario()' do
+    feature = nil
+
+    before(:each) do
+      feature = {}
+    end
+
     it 'returns the scenario id' do
       scenario = {:id => 'text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text')
     end
 
     it 'replaces a period with a hyphen' do
       scenario = {:id => 'text.text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text-text')
     end
 
     it 'replaces a semi colon with a period' do
       scenario = {:id => 'text;text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text.text')
     end
 
     it 'replaces multiple semi colons with periods' do
       scenario = {:id => 'text;text;text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text.text.text')
     end
 
     it 'does not replace hyphens' do
       scenario = {:id => 'text-text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text-text')
     end
 
@@ -386,120 +414,123 @@ describe CheckCucumber do
       (1..254).each {|ascii_code| id += ascii_code.chr}
 
       scenario = {:id => id}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('0123456789.ABCDEFGHIJKLMNOPQRSTUVWXYZ-_-abcdefghijklmnopqrstuvwxyz')
     end
 
     it 'avoid consecutive periods' do
       scenario = {:id => 'text;;text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text.text')
     end
 
     it 'removes a hyphen at the start' do
       scenario = {:id => '-text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text')
     end
 
     it 'removes multiple hyphens at the start' do
       scenario = {:id => '--text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text')
     end
 
     it 'removes a hyphen at the end' do
       scenario = {:id => 'text-'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text')
     end
 
     it 'removes multiple hyphens at the end' do
       scenario = {:id => 'text--'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text')
     end
 
     it 'replaces consecutive hyphens with a single hyphen' do
       scenario = {:id => 'text--text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text-text')
     end
 
     it 'removes a period at the start' do
       scenario = {:id => ';text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text')
     end
 
     it 'removes multiple periods at the start' do
       scenario = {:id => ';;text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text')
     end
 
     it 'removes a period at the end' do
       scenario = {:id => 'text;'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text')
     end
 
     it 'removes multiple periods at the end' do
       scenario = {:id => 'text;;'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text')
     end
 
     it 'replaces consecutive periods with a single period' do
       scenario = {:id => 'text;;text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text.text')
     end
 
     it 'removes a hyphen at the start of a part' do
       scenario = {:id => 'text;-text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text.text')
     end
 
     it 'removes multiple hyphens at the start of a part' do
       scenario = {:id => 'text;--text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text.text')
     end
 
     it 'removes a hyphen at the end of a part' do
       scenario = {:id => 'text;-text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text.text')
     end
 
     it 'removes multiple hyphens at the end of a part' do
       scenario = {:id => 'text;--text'}
-      name = check_cucumber.generate_name_from_scenario(scenario)
+      name = check_cucumber.generate_name_from_scenario(feature, scenario)
       expect(name).to eq('text.text')
     end
 
     describe 'when using a variant of Cucumber that includes profile names in the Cucumber report (e.g. parallel-cucumber)' do
       it 'returns the scenario id and the profile name' do
-        scenario = {:id => 'text', :profile => 'example-profile'}
-        name = check_cucumber.generate_name_from_scenario(scenario)
+        feature = {:profile => 'example-profile'}
+        scenario = {:id => 'text'}
+        name = check_cucumber.generate_name_from_scenario(feature, scenario)
         expect(name).to eq('text.example-profile')
       end
     end
   end
 
   describe 'generate_metrics_from_scenario()' do
+    feature = nil
     scenario = nil
 
     before(:each) do
       check_cucumber.config[:metric_prefix] = 'example-metric-prefix'
+      feature = {}
       scenario = {:id => 'example-scenario-id', :steps => []}
     end
 
     it 'generates metrics for a single step' do
       scenario[:steps] << {:result => {:duration => 0.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :passed, 123)
       expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5 123\n" +
         "example-metric-prefix.example-scenario-id.step-count 1 123\n" +
         "example-metric-prefix.example-scenario-id.step-1.duration 0.5 123"
@@ -509,7 +540,7 @@ describe CheckCucumber do
     it 'generates metrics for multiple steps' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       scenario[:steps] << {:result => {:duration => 1.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :passed, 123)
       expected_metrics = "example-metric-prefix.example-scenario-id.duration 2.0 123\n" +
         "example-metric-prefix.example-scenario-id.step-count 2 123\n" +
         "example-metric-prefix.example-scenario-id.step-1.duration 0.5 123\n" +
@@ -519,32 +550,32 @@ describe CheckCucumber do
 
     it 'ignores a scenario with no steps' do
       scenario.delete :steps
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :passed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a scenario with an empty array of steps' do
       scenario[:steps] = []
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :passed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a scenario with only steps that have no results' do
       scenario[:steps] << {}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :passed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a scenario with only steps that have no duration' do
       scenario[:steps] << {:result => {}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :passed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a step with no result' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       scenario[:steps] << {}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :passed, 123)
       expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5 123\n" +
         "example-metric-prefix.example-scenario-id.step-count 2 123\n" +
         "example-metric-prefix.example-scenario-id.step-1.duration 0.5 123"
@@ -554,7 +585,7 @@ describe CheckCucumber do
     it 'ignores a step with no duration' do
       scenario[:steps] << {:result => {:duration => 0.5}}
       scenario[:steps] << {:result => {}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :passed, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :passed, 123)
       expected_metrics = "example-metric-prefix.example-scenario-id.duration 0.5 123\n" +
         "example-metric-prefix.example-scenario-id.step-count 2 123\n" +
         "example-metric-prefix.example-scenario-id.step-1.duration 0.5 123"
@@ -563,19 +594,19 @@ describe CheckCucumber do
 
     it 'ignores a failed scenario' do
       scenario[:steps] << {:result => {:duration => 0.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :failed, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :failed, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores a pending scenario' do
       scenario[:steps] << {:result => {:duration => 0.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :pending, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :pending, 123)
       expect(metrics).to be_nil
     end
 
     it 'ignores an undefined scenario' do
       scenario[:steps] << {:result => {:duration => 0.5}}
-      metrics = check_cucumber.generate_metrics_from_scenario(scenario, :undefined, 123)
+      metrics = check_cucumber.generate_metrics_from_scenario(feature, scenario, :undefined, 123)
       expect(metrics).to be_nil
     end
   end
@@ -708,7 +739,8 @@ def generate_feature(options = {})
     :line => 1,
     :keyword => "Feature",
     :uri => "features/feature-#{feature_index}.feature",
-    :elements => []
+    :elements => [],
+    :profile => options[:profile]
   }
 
   if options[:has_background]
@@ -771,6 +803,7 @@ end
 def generate_sensu_event(options = {})
   feature_index = options[:feature_index] || 0
   scenario_index = options[:scenario_index] || 0
+  metric_prefix = options[:metric_prefix] || "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}"
 
   feature = deep_dup(options[:report][feature_index])
   scenarios = feature[:elements].select {|element| element[:type] == 'scenario'}
@@ -779,32 +812,34 @@ def generate_sensu_event(options = {})
 
   case options[:type]
     when :metric
+      name = options[:name] || "example-name.Feature-#{feature_index}.scenario-#{scenario_index}.metrics"
       metrics = []
 
       if options[:status] == :passed && scenario.has_key?(:steps) && scenario[:steps].length > 0
         scenario_duration = 0
 
         scenario[:steps].each.with_index do |step, step_index|
-          metrics << "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-#{step_index + 1}.duration #{step[:result][:duration]} 123"
+          metrics << "#{metric_prefix}.step-#{step_index + 1}.duration #{step[:result][:duration]} 123"
           scenario_duration += step[:result][:duration]
         end
 
         metrics.unshift([
-          "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.duration #{scenario_duration} 123",
-          "example-metric-prefix.Feature-#{feature_index}.scenario-#{scenario_index}.step-count #{scenario[:steps].length} 123"
+          "#{metric_prefix}.duration #{scenario_duration} 123",
+          "#{metric_prefix}.step-count #{scenario[:steps].length} 123"
         ])
       end
 
       metrics = metrics.join("\n")
 
       sensu_event = {
-        :name => "example-name.Feature-#{feature_index}.scenario-#{scenario_index}.metrics",
+        :name => name,
         :type => 'metric',
         :handlers => ['example-metric-handler'],
         :output => metrics,
         :status => 0
       }
     else
+      name = options[:name] || "example-name.Feature-#{feature_index}.scenario-#{scenario_index}"
       data = {
         'status' => options[:status].to_s
       }
@@ -827,7 +862,7 @@ def generate_sensu_event(options = {})
       }
 
       sensu_event = {
-        :name => "example-name.Feature-#{feature_index}.scenario-#{scenario_index}",
+        :name => name,
         :handlers => ['example-handler'],
         :status => status_code_map[options[:status]],
         :output => dump_yaml(data),

@@ -193,7 +193,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
               'steps' => steps_output
             }
 
-            event_name = "#{config[:name]}.#{generate_name_from_scenario(element)}"
+            event_name = "#{config[:name]}.#{generate_name_from_scenario(feature, element)}"
 
             scenario_status_code = case scenario_status
               when :passed
@@ -214,7 +214,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
             sensu_events << sensu_event
 
-            metrics = generate_metrics_from_scenario(element, scenario_status, utc_timestamp)
+            metrics = generate_metrics_from_scenario(feature, element, scenario_status, utc_timestamp)
 
             unless metrics.nil?
               metric_event = {
@@ -267,9 +267,9 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     end
   end
 
-  def generate_name_from_scenario(scenario)
+  def generate_name_from_scenario(feature, scenario)
     name = scenario[:id]
-    name += ";#{scenario[:profile]}" if scenario.has_key? :profile
+    name += ";#{feature[:profile]}" if feature.has_key? :profile
 
     name = name.gsub(/\./, '-')
       .gsub(/;/, '.')
@@ -333,7 +333,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     Marshal.load(Marshal.dump(obj))
   end
 
-  def generate_metrics_from_scenario(scenario, scenario_status, utc_timestamp)
+  def generate_metrics_from_scenario(feature, scenario, scenario_status, utc_timestamp)
     metrics = []
 
     if scenario_status == :passed
@@ -341,7 +341,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
       if scenario.has_key?(:steps)
         has_step_durations = false
-        scenario_metric_prefix = "#{config[:metric_prefix]}.#{generate_name_from_scenario(scenario)}"
+        scenario_metric_prefix = "#{config[:metric_prefix]}.#{generate_name_from_scenario(feature, scenario)}"
 
         scenario[:steps].each.with_index do |step, step_index|
           if step.has_key?(:result) && step[:result].has_key?(:duration)
