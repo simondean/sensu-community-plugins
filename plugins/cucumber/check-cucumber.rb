@@ -181,13 +181,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
             element_clone = deep_dup(element)
 
-            unless config[:attachments]
-              element_clone[:steps].each do |step|
-                if step[:result].has_key?(:embeddings)
-                  step[:result][:embeddings] = []
-                end
-              end
-            end
+            remove_attachments_from_scenario(element_clone) unless config[:attachments]
 
             feature_clone = deep_dup(feature)
             feature_clone[:elements] = [element_clone]
@@ -287,6 +281,14 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
         warning data
       when :unknown
         unknown data
+    end
+  end
+
+  def remove_attachments_from_scenario(scenario)
+    Array(scenario[:steps]).each do |step|
+      if step.has_key?(:result) && step[:result].has_key?(:embeddings)
+        step[:result][:embeddings] = []
+      end
     end
   end
 

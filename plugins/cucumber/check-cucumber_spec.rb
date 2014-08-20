@@ -101,7 +101,7 @@ describe CheckCucumber do
 
                   describe 'when there are no scenarios' do
                     before(:each) do
-                      feature = generate_feature()
+                      feature = generate_feature
                       feature.delete :elements
                       report << feature
                     end
@@ -607,6 +607,66 @@ describe CheckCucumber do
         name = check_cucumber.generate_name_from_scenario(feature, scenario)
         expect(name).to eq('text.example-profile')
       end
+    end
+  end
+
+  describe 'remove_attachments_from_scenario()' do
+    it 'replaces the attachments of a step with an empty array' do
+      scenario = {
+        :steps => [
+          {
+            :result => {
+              :embeddings => [{}]
+            }
+          }
+        ]
+      }
+      check_cucumber.remove_attachments_from_scenario(scenario)
+      expect(scenario[:steps][0][:result][:embeddings]).to be_empty
+    end
+
+    it 'replaces the attachments of multiple steps with empty arrays' do
+      scenario = {
+        :steps => [
+          {
+            :result => {
+              :embeddings => [{}]
+            }
+          },
+          {
+            :result => {
+              :embeddings => [{}]
+            }
+          }
+        ]
+      }
+      check_cucumber.remove_attachments_from_scenario(scenario)
+      expect(scenario[:steps][0][:result][:embeddings]).to be_empty
+      expect(scenario[:steps][1][:result][:embeddings]).to be_empty
+    end
+
+    it 'does not replace the attachments of a step with no attachments' do
+      scenario = {
+        :steps => [
+          {
+            :result => {}
+          }
+        ]
+      }
+      check_cucumber.remove_attachments_from_scenario(scenario)
+      expect(scenario[:steps][0][:result]).to_not include(:embeddings)
+    end
+
+    it 'does not error when the scenario has no steps' do
+      scenario = {}
+      check_cucumber.remove_attachments_from_scenario(scenario)
+    end
+
+    it 'does not error when a step has no result' do
+      scenario = {
+        :steps => [{}]
+      }
+      check_cucumber.remove_attachments_from_scenario(scenario)
     end
   end
 
