@@ -137,7 +137,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       return
     end
 
-    report = JSON.parse(result[:report], :symbolize_names => true)
+    report = JSON.parse(result[:report].encode('UTF-8'), :symbolize_names => true)
 
     outcome = :ok
     scenario_count = 0
