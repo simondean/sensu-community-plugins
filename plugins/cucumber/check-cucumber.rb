@@ -88,42 +88,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :boolean => true
 
   def run
-    if config[:name].nil?
-      unknown_error 'No name specified'
-      return
-    end
-
-    if config[:handler].nil?
-      unknown_error 'No handler specified'
-      return
-    end
-
-    if config[:metric_handler].nil?
-      unknown_error 'No metric handler specified'
-      return
-    end
-
-    if config[:metric_prefix].nil?
-      unknown_error 'No metric prefix specified'
-      return
-    end
-
-    if config[:command].nil?
-      unknown_error 'No cucumber command line specified'
-      return
-    end
-
-    if config[:working_dir].nil?
-      unknown_error 'No working directory specified'
-      return
-    end
-
-    config[:attachments] = true if config[:attachments].nil?
-
-    unless [TrueClass, FalseClass].include? config[:attachments].class
-      unknown_error 'Attachments argument is not a valid boolean'
-      return
-    end
+    return unless config_is_valid
 
     result = execute_cucumber
 
@@ -149,84 +114,15 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       if feature.has_key? :elements
         feature[:elements].each do |element|
           if element[:type] == 'scenario'
-            scenario_status = :passed
-
-            if element.has_key? :steps
-              element[:steps].each do |step|
-                if step.has_key? :result
-                  step_status = step[:result][:status]
-
-                  if ['failed', 'pending', 'undefined'].include? step_status
-                    scenario_status = step_status.to_sym
-                    break
-                  end
-                end
-              end
-            end
-
-            element_clone = deep_dup(element)
-
-            remove_attachments_from_scenario(element_clone) unless config[:attachments]
-
-            feature_clone = deep_dup(feature)
-            feature_clone[:elements] = [element_clone]
-            scenario_report = [feature_clone]
-
-            steps_output = []
-
-            if element.has_key?(:steps)
-              element[:steps].each_with_index do |step, index|
-                has_result = step.has_key?(:result)
-                step_status = has_result ? step[:result][:status] : 'UNKNOWN'
-                step_output = {
-                  'step' => "#{step_status.upcase} - #{index + 1} - #{step[:keyword]}#{step[:name]}"
-                }
-
-                if has_result && step[:result].has_key?(:error_message)
-                  step_output['error'] = step[:result][:error_message]
-                end
-
-                steps_output << step_output
-              end
-            end
-
-            scenario_output = {
-              'status' => scenario_status.to_s,
-              'steps' => steps_output
-            }
-
             event_name = "#{config[:name]}.#{generate_name_from_scenario(feature, element)}"
+            scenario_status = get_scenario_status(element)
 
-            scenario_status_code = case scenario_status
-              when :passed
-                OK
-              when :failed
-                CRITICAL
-              when :pending, :undefined
-                WARNING
-            end
-
-            sensu_event = {
-              :name => event_name,
-              :handlers => [config[:handler]],
-              :status => scenario_status_code,
-              :output => dump_yaml(scenario_output),
-              :report => scenario_report
-            }
-
-            sensu_events << sensu_event
+            sensu_events << generate_sensu_event(event_name, feature, element, scenario_status)
 
             metrics = generate_metrics_from_scenario(feature, element, scenario_status, utc_timestamp)
 
             unless metrics.nil?
-              metric_event = {
-                :name => "#{event_name}.metrics",
-                :type => 'metric',
-                :handlers => [config[:metric_handler]],
-                :output => metrics,
-                :status => 0
-              }
-              sensu_events << metric_event
+              sensu_events << generate_metric_event(event_name, metrics)
             end
 
             scenario_count += 1
@@ -395,6 +291,134 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     socket.close
   end
 
+  def config_is_valid
+    if config[:name].nil?
+      unknown_error 'No name specified'
+      return false
+    end
+
+    if config[:handler].nil?
+      unknown_error 'No handler specified'
+      return false
+    end
+
+    if config[:metric_handler].nil?
+      unknown_error 'No metric handler specified'
+      return false
+    end
+
+    if config[:metric_prefix].nil?
+      unknown_error 'No metric prefix specified'
+      return false
+    end
+
+    if config[:command].nil?
+      unknown_error 'No cucumber command line specified'
+      return false
+    end
+
+    if config[:working_dir].nil?
+      unknown_error 'No working directory specified'
+      return false
+    end
+
+    config[:attachments] = true if config[:attachments].nil?
+
+    unless [TrueClass, FalseClass].include? config[:attachments].class
+      unknown_error 'Attachments argument is not a valid boolean'
+      return false
+    end
+
+    true
+  end
+
+  def generate_sensu_event(event_name, feature, scenario, scenario_status)
+    scenario_clone = deep_clone(scenario)
+    remove_attachments_from_scenario(scenario_clone) unless config[:attachments]
+    feature_clone = deep_clone(feature)
+    feature_clone[:elements] = [scenario_clone]
+    scenario_report = [feature_clone]
+
+    scenario_output = get_output_for_scenario(scenario, scenario_status)
+
+    scenario_status_code = case scenario_status
+      when :passed
+        OK
+      when :failed
+        CRITICAL
+      when :pending, :undefined
+        WARNING
+    end
+
+    sensu_event = {
+      :name => event_name,
+      :handlers => [config[:handler]],
+      :status => scenario_status_code,
+      :output => scenario_output,
+      :report => scenario_report
+    }
+
+    sensu_event
+  end
+
+  def generate_metric_event(event_name, metrics)
+    metric_event = {
+      :name => "#{event_name}.metrics",
+      :type => 'metric',
+      :handlers => [config[:metric_handler]],
+      :output => metrics,
+      :status => 0
+    }
+
+    metric_event
+  end
+
+  def get_scenario_status(scenario)
+    scenario_status = :passed
+
+    if scenario.has_key? :steps
+      scenario[:steps].each do |step|
+        if step.has_key? :result
+          step_status = step[:result][:status]
+
+          if ['failed', 'pending', 'undefined'].include? step_status
+            scenario_status = step_status.to_sym
+            break
+          end
+        end
+      end
+    end
+
+    scenario_status
+  end
+
+  def get_output_for_scenario(scenario, scenario_status)
+    steps_output = []
+
+    if scenario.has_key?(:steps)
+      scenario[:steps].each_with_index do |step, index|
+        has_result = step.has_key?(:result)
+        step_status = has_result ? step[:result][:status] : 'UNKNOWN'
+        step_output = {
+          'step' => "#{step_status.upcase} - #{index + 1} - #{step[:keyword]}#{step[:name]}"
+        }
+
+        if has_result && step[:result].has_key?(:error_message)
+          step_output['error'] = step[:result][:error_message]
+        end
+
+        steps_output << step_output
+      end
+    end
+
+    scenario_output = {
+      'status' => scenario_status.to_s,
+      'steps' => steps_output
+    }
+
+    dump_yaml(scenario_output)
+  end
+
   def unknown_error(message)
     data = {
       'status' => 'unknown',
@@ -407,7 +431,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     unknown dump_yaml(data)
   end
 
-  def deep_dup(obj)
+  def deep_clone(obj)
     Marshal.load(Marshal.dump(obj))
   end
 
