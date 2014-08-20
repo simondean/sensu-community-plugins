@@ -111,23 +111,21 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     utc_timestamp = Time.now.getutc.to_i
 
     report.each do |feature|
-      if feature.has_key? :elements
-        feature[:elements].each do |element|
-          if element[:type] == 'scenario'
-            event_name = "#{config[:name]}.#{generate_name_from_scenario(feature, element)}"
-            scenario_status = get_scenario_status(element)
+      Array(feature[:elements]).each do |element|
+        if element[:type] == 'scenario'
+          event_name = "#{config[:name]}.#{generate_name_from_scenario(feature, element)}"
+          scenario_status = get_scenario_status(element)
 
-            sensu_events << generate_sensu_event(event_name, feature, element, scenario_status)
+          sensu_events << generate_sensu_event(event_name, feature, element, scenario_status)
 
-            metrics = generate_metrics_from_scenario(feature, element, scenario_status, utc_timestamp)
+          metrics = generate_metrics_from_scenario(feature, element, scenario_status, utc_timestamp)
 
-            unless metrics.nil?
-              sensu_events << generate_metric_event(event_name, metrics)
-            end
-
-            scenario_count += 1
-            status_counts[scenario_status] += 1
+          unless metrics.nil?
+            sensu_events << generate_metric_event(event_name, metrics)
           end
+
+          scenario_count += 1
+          status_counts[scenario_status] += 1
         end
       end
     end
@@ -376,15 +374,13 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   def get_scenario_status(scenario)
     scenario_status = :passed
 
-    if scenario.has_key? :steps
-      scenario[:steps].each do |step|
-        if step.has_key? :result
-          step_status = step[:result][:status]
+    Array(scenario[:steps]).each do |step|
+      if step.has_key? :result
+        step_status = step[:result][:status]
 
-          if ['failed', 'pending', 'undefined'].include? step_status
-            scenario_status = step_status.to_sym
-            break
-          end
+        if ['failed', 'pending', 'undefined'].include? step_status
+          scenario_status = step_status.to_sym
+          break
         end
       end
     end
@@ -395,20 +391,18 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   def get_output_for_scenario(scenario, scenario_status)
     steps_output = []
 
-    if scenario.has_key?(:steps)
-      scenario[:steps].each_with_index do |step, index|
-        has_result = step.has_key?(:result)
-        step_status = has_result ? step[:result][:status] : 'UNKNOWN'
-        step_output = {
-          'step' => "#{step_status.upcase} - #{index + 1} - #{step[:keyword]}#{step[:name]}"
-        }
+    Array(scenario[:steps]).each_with_index do |step, index|
+      has_result = step.has_key?(:result)
+      step_status = has_result ? step[:result][:status] : 'UNKNOWN'
+      step_output = {
+        'step' => "#{step_status.upcase} - #{index + 1} - #{step[:keyword]}#{step[:name]}"
+      }
 
-        if has_result && step[:result].has_key?(:error_message)
-          step_output['error'] = step[:result][:error_message]
-        end
-
-        steps_output << step_output
+      if has_result && step[:result].has_key?(:error_message)
+        step_output['error'] = step[:result][:error_message]
       end
+
+      steps_output << step_output
     end
 
     scenario_output = {
