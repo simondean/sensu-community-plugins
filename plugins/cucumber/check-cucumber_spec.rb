@@ -4,6 +4,10 @@ require_relative '../../spec_helper'
 describe CheckCucumber do
   check_cucumber = nil
 
+  before(:each) do
+    check_cucumber = CheckCucumber.new
+  end
+
   describe 'run()' do
     args = nil
 
@@ -98,18 +102,25 @@ describe CheckCucumber do
     end
 
     describe 'when all the mandatory config has been specified' do
-      before(:each) do
-        check_cucumber = CheckCucumber.new
-        check_cucumber.stub(:send_sensu_event) {}
-      end
+      args = nil
 
       before(:each) do
-        check_cucumber.config[:name] = 'example-name'
-        check_cucumber.config[:handler] = 'example-handler'
-        check_cucumber.config[:metric_handler] = 'example-metric-handler'
-        check_cucumber.config[:metric_prefix] = 'example-metric-prefix'
-        check_cucumber.config[:command] = 'cucumber-js features/'
-        check_cucumber.config[:working_dir] = 'example-working-dir'
+        args = [
+          '--name',
+          'example-name',
+          '--handler',
+          'example-handler',
+          '--metric-handler',
+          'example-metric-handler',
+          '--metric-prefix',
+          'example-metric-prefix',
+          '--command',
+          'cucumber-js features/',
+          '--working-dir',
+          'example-working-dir'
+        ]
+        check_cucumber = CheckCucumber.new(args)
+        check_cucumber.stub(:send_sensu_event) {}
       end
 
       describe 'when cucumber executes and provides a report' do
