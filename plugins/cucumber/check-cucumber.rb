@@ -200,7 +200,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     errors = []
 
     sensu_events.each do |sensu_event|
-      data = sensu_event.to_json
+      data = escape_unicode_characters_in_json(sensu_event.to_json)
 
       begin
         send_sensu_event(data)
@@ -431,6 +431,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
   def dump_yaml(data)
     data.to_yaml.gsub(/^---\r?\n/, '')
+  end
+
+  def escape_unicode_characters_in_json(json)
+    json.unpack('U*').map {|i| i < 128 ? i.chr : "\\u#{i.to_s(16).rjust(4, '0')}"}.join
   end
 
 end

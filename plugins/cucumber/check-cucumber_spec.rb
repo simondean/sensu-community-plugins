@@ -321,7 +321,7 @@ describe CheckCucumber do
 
         describe 'when the Cucumber report JSON contains a UTF-8 character' do
           before(:each) do
-            report << generate_feature(:feature_description => "Contains the \\u2190 leftwards arrow character".encode('utf-8'),
+            report << generate_feature(:feature_description => "Contains the \u2190 leftwards arrow character".encode('utf-8'),
                                        :scenarios => [{:step_statuses => :passed}])
           end
 
@@ -798,6 +798,15 @@ describe CheckCucumber do
         events = [{:name => 'example-event-1'}, {:name => 'example-event-2'}]
         expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-1"}').ordered
         expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-event-2"}').ordered
+        errors = check_cucumber.raise_sensu_events(events)
+        expect(errors).to be_empty
+      end
+    end
+
+    describe 'when an event includes a unicode character' do
+      it 'escapes the unicode character using a JSON unicode escape sequence as the Sensu socket only supports ASCII characters' do
+        events = [{:name => "example-\u2190-leftwards-arrow-character-event".encode('utf-8')}]
+        expect(check_cucumber).to receive('send_sensu_event').with('{"name":"example-\u2190-leftwards-arrow-character-event"}')
         errors = check_cucumber.raise_sensu_events(events)
         expect(errors).to be_empty
       end
