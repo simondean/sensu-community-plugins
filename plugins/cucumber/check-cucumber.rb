@@ -332,9 +332,9 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   end
 
   def generate_sensu_event(event_name, feature, scenario, scenario_status)
-    scenario_clone = deep_clone(scenario)
+    scenario_clone = deep_dup(scenario)
     remove_attachments_from_scenario(scenario_clone) unless config[:attachments]
-    feature_clone = deep_clone(feature)
+    feature_clone = deep_dup(feature)
     feature_clone[:elements] = [scenario_clone]
     scenario_report = [feature_clone]
 
@@ -426,7 +426,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     unknown dump_yaml(data)
   end
 
-  def deep_clone(obj)
+  def deep_dup(obj)
     Marshal.load(Marshal.dump(obj))
   end
 
