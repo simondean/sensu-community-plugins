@@ -63,9 +63,9 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :long => '--working-dir WORKING_DIR'
 
   process_env_option =
-    lambda do |c|
+    lambda do |config_value|
       @env ||= {}
-      name, value = c.split('=', 2)
+      name, value = config_value.split('=', 2)
       @env[name] = value
       @env
     end
