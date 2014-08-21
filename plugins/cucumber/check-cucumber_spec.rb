@@ -97,7 +97,7 @@ describe CheckCucumber do
 
         before(:each) do
           report = []
-          expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
             {:report => report.to_json, :exit_status => 0}
           end
           Time.stub_chain(:now, :getutc, :to_i) {123}
@@ -416,7 +416,7 @@ describe CheckCucumber do
       describe 'when cucumber exits with the exit code 0, indicating all scenarios passed' do
         before(:each) do
           report = [generate_feature(:scenarios => [{:step_statuses => :passed}])]
-          expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
             {:report => report.to_json, :exit_status => 0}
           end
           expect(check_cucumber).to receive('raise_sensu_events') do
@@ -433,7 +433,7 @@ describe CheckCucumber do
       describe 'when cucumber exits with the exit code 1, indicating some or all scenarios failed' do
         before(:each) do
           report = [generate_feature(:scenarios => [{:step_statuses => :passed}])]
-          expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
             {:report => report.to_json, :exit_status => 1}
           end
           expect(check_cucumber).to receive('raise_sensu_events') do
@@ -449,7 +449,7 @@ describe CheckCucumber do
 
       describe 'when cucumber exits with the exit code -1, indicating an error' do
         before(:each) do
-          expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
             {:report => '', :exit_status => -1}
           end
         end
@@ -462,7 +462,7 @@ describe CheckCucumber do
 
       describe 'when cucumber exits with the exit code 2, indicating an error' do
         before(:each) do
-          expect(check_cucumber).to receive('execute_cucumber').with(no_args) do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
             {:report => '', :exit_status => 2}
           end
         end

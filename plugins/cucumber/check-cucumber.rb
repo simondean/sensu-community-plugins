@@ -90,7 +90,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   def run
     return unless config_is_valid
 
-    result = execute_cucumber
+    result = execute_cucumber(config[:env], config[:command], config[:working_dir])
 
     puts "Report: #{result[:report]}" if config[:debug]
     puts "Exit status: #{result[:exit_status]}" if config[:debug]
@@ -263,11 +263,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     puts msg
   end
 
-  def execute_cucumber
+  def execute_cucumber(env, command, working_dir)
     report = nil
-    env = config[:env] || {}
 
-    IO.popen(env, config[:command], :chdir => config[:working_dir]) do |io|
+    IO.popen(env, command, :chdir => working_dir) do |io|
       report = io.read
     end
 
@@ -319,6 +318,8 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       unknown_error 'No working directory specified'
       return false
     end
+
+    config[:env] ||= {}
 
     config[:attachments] = true if config[:attachments].nil?
 
