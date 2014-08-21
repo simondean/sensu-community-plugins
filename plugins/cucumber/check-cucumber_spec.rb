@@ -4,74 +4,89 @@ require_relative '../../spec_helper'
 describe CheckCucumber do
   check_cucumber = nil
 
-  before(:each) do
-    check_cucumber = CheckCucumber.new
-    check_cucumber.stub(:send_sensu_event) {}
-  end
-
   describe 'run()' do
+    args = nil
+
+    before(:each) do
+      args = []
+    end
+
     it 'returns unknown if no name is specified' do
+      check_cucumber = CheckCucumber.new(args)
       expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No name specified'))
       check_cucumber.run
     end
 
     describe 'when the name is specified' do
       before(:each) do
-        check_cucumber.config[:name] = 'example-name'
+        args << '--name'
+        args << 'example-name'
       end
 
       it 'returns unknown if no handler is specified' do
+        check_cucumber = CheckCucumber.new(args)
         expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No handler specified'))
         check_cucumber.run
       end
 
       describe 'when the handler is specified' do
         before(:each) do
-          check_cucumber.config[:handler] = 'example-handler'
+          args << '--handler'
+          args << 'example-handler'
         end
 
         it 'returns unknown if no metric handler is specified' do
+          check_cucumber = CheckCucumber.new(args)
           expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No metric handler specified'))
           check_cucumber.run
         end
 
         describe 'when the metric handler is specified' do
           before(:each) do
-            check_cucumber.config[:metric_handler] = 'example-metric-handler'
+            args << '--metric-handler'
+            args << 'example-metric-handler'
           end
 
           it 'returns unknown if no metric prefix is specified' do
+            check_cucumber = CheckCucumber.new(args)
             expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No metric prefix specified'))
             check_cucumber.run
           end
 
           describe 'when the metric prefix is specified' do
             before(:each) do
-              check_cucumber.config[:metric_prefix] = 'example-metric-prefix'
+              args << '--metric-prefix'
+              args << 'example-metric-prefix'
             end
 
             it 'returns unknown if no cucumber command line is specified' do
+              check_cucumber = CheckCucumber.new(args)
               expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No cucumber command line specified'))
               check_cucumber.run
             end
 
             describe 'when the Cucumber command line is specified' do
               before(:each) do
-                check_cucumber.config[:command] = 'cucumber-js features/'
+                args << '--command'
+                args << 'cucumber-js features/'
               end
 
               it 'returns unknown if no working dir is specified' do
+                check_cucumber = CheckCucumber.new(args)
                 expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No working directory specified'))
                 check_cucumber.run
               end
 
               describe 'when the Cucumber command line is specified' do
                 before(:each) do
-                  check_cucumber.config[:working_dir] = 'example-working-dir'
+                  args << '--working-dir'
+                  args << 'example-working-dir'
                 end
 
                 it 'returns unknown if the attachments argument is not boolean' do
-                  check_cucumber.config[:attachments] = 'example'
+                  args << '--attachment'
+                  args << 'not-a-boolean'
+                  check_cucumber = CheckCucumber.new(args)
                   expect(check_cucumber).to receive('unknown').with(generate_unknown_error('Attachments argument is not a valid boolean'))
                   check_cucumber.run
                 end
@@ -83,6 +98,11 @@ describe CheckCucumber do
     end
 
     describe 'when all the mandatory config has been specified' do
+      before(:each) do
+        check_cucumber = CheckCucumber.new
+        check_cucumber.stub(:send_sensu_event) {}
+      end
+
       before(:each) do
         check_cucumber.config[:name] = 'example-name'
         check_cucumber.config[:handler] = 'example-handler'
