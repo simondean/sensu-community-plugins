@@ -513,7 +513,8 @@ describe CheckCucumber do
       end
 
       it 'passes the environment variable to Cucumber' do
-        expect(check_cucumber).to receive('execute_cucumber').with({'NAME1' => 'VALUE1'}, 'cucumber-js features/', 'example-working-dir') do
+        expected_env = {'NAME1' => 'VALUE1'}
+        expect(check_cucumber).to receive('execute_cucumber').with(expected_env, 'cucumber-js features/', 'example-working-dir') do
           {:report => '[]', :exit_status => 0}
         end
       end

@@ -62,19 +62,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :short => '-w WORKING_DIR',
     :long => '--working-dir WORKING_DIR'
 
-  process_env_option =
-    lambda do |config_value|
-      @env ||= {}
-      name, value = config_value.split('=', 2)
-      @env[name] = value
-      @env
-    end
-
   option :env,
     :description => "Environment variable to pass to Cucumber. Can be specified more than once to set multiple environment variables",
     :short => '-n NAME=VALUE',
-    :long => '--env NAME=VALUE',
-    :proc => process_env_option
+    :long => '--env NAME=VALUE'
 
   option :attachments,
     :description => "Specifies whether Cucumber attachments should be included in sensu events. " +
@@ -86,6 +77,20 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :description => "Print debug information",
     :long => '--debug',
     :boolean => true
+
+  def parse_options(argv)
+    env = {}
+
+    process_env_option = lambda do |config_value|
+      name, value = config_value.split('=', 2)
+      env[name] = value
+      env
+    end
+
+    options[:env][:proc] = process_env_option
+
+    super(argv)
+  end
 
   def run
     return unless config_is_valid
