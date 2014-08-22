@@ -22,6 +22,7 @@
 require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'sensu-plugin/check/cli'
 require 'optparse'
+require 'timeout'
 require 'json'
 require 'yaml'
 require 'socket'
@@ -31,6 +32,8 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   WARNING = 1
   CRITICAL = 2
   UNKNOWN = 3
+
+  INFINITE_TIMEOUT = 0
 
   option :name,
     :description => "Name to use in sensu events",
@@ -61,6 +64,11 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :description => "Working directory to use with Cucumber",
     :short => '-w WORKING_DIR',
     :long => '--working-dir WORKING_DIR'
+
+  option :timeout,
+    :description => "Amount of seconds to wait for Cucumber to wait before killing the Cucumber process",
+    :short => '-t TIMEOUT',
+    :long => '--timeout TIMEOUT'
 
   option :env,
     :description => "Environment variable to pass to Cucumber. Can be specified more than once to set multiple environment variables",
@@ -95,7 +103,14 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   def run
     return unless config_is_valid
 
-    result = execute_cucumber(config[:env], config[:command], config[:working_dir])
+    result = nil
+
+    begin
+      result = execute_cucumber(config[:env], config[:command], config[:working_dir], config[:timeout])
+    rescue Timeout::Error
+      unknown_error "Cucumber exceeded the timeout of #{config[:timeout]} seconds"
+      return
+    end
 
     puts "Report: #{result[:report]}" if config[:debug]
     puts "Exit status: #{result[:exit_status]}" if config[:debug]
@@ -268,11 +283,22 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     puts msg
   end
 
-  def execute_cucumber(env, command, working_dir)
+  def execute_cucumber(env, command, working_dir, timeout)
     report = nil
+    pipe = nil
 
-    IO.popen(env, command, :chdir => working_dir) do |io|
-      report = io.read
+    begin
+      begin
+        Timeout.timeout(timeout) do
+          pipe = IO.popen(env, command, :chdir => working_dir)
+          report = pipe.read
+        end
+      rescue Timeout::Error
+        Process.kill 9, pipe.pid
+        raise Timeout::Error, "Cucumber timed out"
+      end
+    ensure
+      pipe.close unless pipe.nil?
     end
 
     {:report => report, :exit_status => $?.exitstatus}
@@ -324,6 +350,8 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       return false
     end
 
+    config[:timeout] ||= INFINITE_TIMEOUT
+    config[:timeout] = Float(config[:timeout]) unless config[:timeout].nil?
     config[:env] ||= {}
 
     config[:attachments] = true if config[:attachments].nil?

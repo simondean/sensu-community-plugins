@@ -127,7 +127,7 @@ describe CheckCucumber do
 
         before(:each) do
           report = []
-          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
             {:report => report.to_json, :exit_status => 0}
           end
           Time.stub_chain(:now, :getutc, :to_i) {123}
@@ -446,7 +446,7 @@ describe CheckCucumber do
       describe 'when cucumber exits with the exit code 0, indicating all scenarios passed' do
         before(:each) do
           report = [generate_feature(:scenarios => [{:step_statuses => :passed}])]
-          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
             {:report => report.to_json, :exit_status => 0}
           end
           expect(check_cucumber).to receive('raise_sensu_events') do
@@ -463,7 +463,7 @@ describe CheckCucumber do
       describe 'when cucumber exits with the exit code 1, indicating some or all scenarios failed' do
         before(:each) do
           report = [generate_feature(:scenarios => [{:step_statuses => :passed}])]
-          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
             {:report => report.to_json, :exit_status => 1}
           end
           expect(check_cucumber).to receive('raise_sensu_events') do
@@ -479,7 +479,7 @@ describe CheckCucumber do
 
       describe 'when cucumber exits with the exit code -1, indicating an error' do
         before(:each) do
-          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
             {:report => '', :exit_status => -1}
           end
         end
@@ -492,7 +492,7 @@ describe CheckCucumber do
 
       describe 'when cucumber exits with the exit code 2, indicating an error' do
         before(:each) do
-          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir') do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
             {:report => '', :exit_status => 2}
           end
         end
@@ -514,7 +514,7 @@ describe CheckCucumber do
 
       it 'passes the environment variable to Cucumber' do
         expected_env = {'NAME1' => 'VALUE1'}
-        expect(check_cucumber).to receive('execute_cucumber').with(expected_env, 'cucumber-js features/', 'example-working-dir') do
+        expect(check_cucumber).to receive('execute_cucumber').with(expected_env, 'cucumber-js features/', 'example-working-dir', 0.0) do
           {:report => '[]', :exit_status => 0}
         end
       end
@@ -536,8 +536,39 @@ describe CheckCucumber do
 
       it 'passes all the environment variables to Cucumber' do
         expected_env = {'NAME1' => 'VALUE1', 'NAME2' => 'VALUE2'}
-        expect(check_cucumber).to receive('execute_cucumber').with(expected_env, 'cucumber-js features/', 'example-working-dir') do
+        expect(check_cucumber).to receive('execute_cucumber').with(expected_env, 'cucumber-js features/', 'example-working-dir', 0.0) do
           {:report => '[]', :exit_status => 0}
+        end
+      end
+
+      after(:each) do
+        check_cucumber.run
+      end
+    end
+
+    describe 'when a timeout is specified' do
+      before(:each) do
+        args = default_args.dup
+        args << '--timeout'
+        args << '123'
+        check_cucumber = CheckCucumber.new(args)
+      end
+
+      it 'passes the environment variable to Cucumber' do
+        expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 123) do
+          {:report => '[]', :exit_status => 0}
+        end
+      end
+
+      describe 'when Cucumber execution exceeds the timeout' do
+        before(:each) do
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 123) do
+            raise Timeout::Error, "Cucumber timed out"
+          end
+        end
+
+        it 'returns unknown' do
+          expect(check_cucumber).to receive('unknown').with(generate_unknown_error('Cucumber exceeded the timeout of 123.0 seconds'))
         end
       end
 
