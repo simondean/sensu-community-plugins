@@ -120,7 +120,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       return
     end
 
-    report = JSON.parse(result[:report].encode('UTF-8'), :symbolize_names => true)
+    report = JSON.parse(result[:report], :symbolize_names => true)
 
     outcome = :ok
     scenario_count = 0
@@ -290,7 +290,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     begin
       begin
         Timeout.timeout(timeout) do
-          pipe = IO.popen(env, command, :chdir => working_dir)
+          pipe = IO.popen(env, command, :chdir => working_dir, :external_encoding => Encoding::UTF_8)
           report = pipe.read
         end
       rescue Timeout::Error
