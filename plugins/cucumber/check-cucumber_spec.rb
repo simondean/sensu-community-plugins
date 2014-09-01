@@ -725,62 +725,48 @@ describe CheckCucumber do
   end
 
   describe 'remove_attachments_from_scenario()' do
+    it 'does not error when the scenario has no steps' do
+      scenario = {}
+      check_cucumber.remove_attachments_from_scenario(scenario)
+    end
+
     it 'replaces the attachments of a step with an empty array' do
       scenario = {
         :steps => [
           {
-            :result => {
-              :embeddings => [{}]
-            }
+            :embeddings => [{}]
           }
         ]
       }
       check_cucumber.remove_attachments_from_scenario(scenario)
-      expect(scenario[:steps][0][:result][:embeddings]).to be_empty
+      expect(scenario[:steps][0][:embeddings]).to be_empty
     end
 
     it 'replaces the attachments of multiple steps with empty arrays' do
       scenario = {
         :steps => [
           {
-            :result => {
-              :embeddings => [{}]
-            }
+            :embeddings => [{}]
           },
           {
-            :result => {
-              :embeddings => [{}]
-            }
+            :embeddings => [{}]
           }
         ]
       }
       check_cucumber.remove_attachments_from_scenario(scenario)
-      expect(scenario[:steps][0][:result][:embeddings]).to be_empty
-      expect(scenario[:steps][1][:result][:embeddings]).to be_empty
+      expect(scenario[:steps][0][:embeddings]).to be_empty
+      expect(scenario[:steps][1][:embeddings]).to be_empty
     end
 
     it 'does not replace the attachments of a step with no attachments' do
       scenario = {
         :steps => [
           {
-            :result => {}
           }
         ]
       }
       check_cucumber.remove_attachments_from_scenario(scenario)
-      expect(scenario[:steps][0][:result]).to_not include(:embeddings)
-    end
-
-    it 'does not error when the scenario has no steps' do
-      scenario = {}
-      check_cucumber.remove_attachments_from_scenario(scenario)
-    end
-
-    it 'does not error when a step has no result' do
-      scenario = {
-        :steps => [{}]
-      }
-      check_cucumber.remove_attachments_from_scenario(scenario)
+      expect(scenario[:steps][0]).to_not include(:embeddings)
     end
   end
 
@@ -1063,7 +1049,7 @@ def generate_feature(options = {})
 
       if scenario_options.has_key?(:step_attachments)
         step_attachment_options = scenario_options[:step_attachments][step_index]
-        step[:result][:embeddings] = [
+        step[:embeddings] = [
           {
             :mime_type => step_attachment_options[:mime_type],
             :data => step_attachment_options[:data]
@@ -1165,7 +1151,7 @@ def generate_sensu_event(options = {})
       if options[:exclude_attachments]
         sensu_event[:report][0][:elements].each do |element|
           element[:steps].each do |step|
-            step[:result][:embeddings] = []
+            step[:embeddings] = []
           end
         end
       end
