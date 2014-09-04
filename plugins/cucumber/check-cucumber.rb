@@ -74,10 +74,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :short => '-n NAME=VALUE',
     :long => '--env NAME=VALUE'
 
-  option :event_config,
-    :description => "Used to add custom config to the sensu events that are raised.  Can be specified more than once to set multiple config items",
-    :short => '-C NAME=VALUE',
-    :long => '--event-config NAME=VALUE'
+  option :event_data,
+    :description => "Used to add custom data to the sensu events that are raised.  Can be specified more than once to set multiple data items",
+    :short => '-d NAME=VALUE',
+    :long => '--event-data NAME=VALUE'
 
   option :attachments,
     :description => "Specifies whether Cucumber attachments should be included in sensu events. " +
@@ -92,7 +92,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
   def parse_options(argv)
     env = {}
-    event_config = {}
+    event_data = {}
 
     process_env_option = lambda do |config_value|
       name, value = config_value.split('=', 2)
@@ -100,14 +100,14 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       env
     end
 
-    process_event_config_option = lambda do |config_value|
+    process_event_data_option = lambda do |config_value|
       name, value = config_value.split('=', 2)
-      event_config[name] = value
-      event_config
+      event_data[name] = value
+      event_data
     end
 
     options[:env][:proc] = process_env_option
-    options[:event_config][:proc] = process_event_config_option
+    options[:event_data][:proc] = process_event_data_option
 
     super(argv)
   end
@@ -229,7 +229,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     config[:timeout] ||= INFINITE_TIMEOUT
     config[:timeout] = Float(config[:timeout]) unless config[:timeout].nil?
     config[:env] ||= {}
-    config[:event_config] ||= {}
+    config[:event_data] ||= {}
 
     config[:attachments] = 'true' if config[:attachments].nil?
 
@@ -406,7 +406,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       :report => scenario_report
     }
 
-    config[:event_config].each do |key, value|
+    config[:event_data].each do |key, value|
       if value =~ /^[0-9]+$/
         value = Integer(value)
       elsif value =~ /^[0-9]+.[0-9]+$/

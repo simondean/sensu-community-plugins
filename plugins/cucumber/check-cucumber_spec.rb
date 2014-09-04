@@ -522,9 +522,9 @@ describe CheckCucumber do
       end
     end
 
-    describe 'when event config is specified' do
+    describe 'when event data is specified' do
       report = nil
-      event_config = nil
+      event_data = nil
 
       before(:each) do
         report = []
@@ -533,10 +533,10 @@ describe CheckCucumber do
         Time.stub_chain(:now, :getutc, :to_i) {123}
       end
 
-      describe 'when there is a single event config item' do
+      describe 'when there is a single event data item' do
         before(:each) do
           args = default_args.dup
-          args << '--event-config'
+          args << '--event-data'
           args << 'NAME1=VALUE1'
           check_cucumber = CheckCucumber.new(args)
           expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
@@ -544,19 +544,19 @@ describe CheckCucumber do
           end
         end
 
-        it 'adds the config to the events' do
-          event_config = {
+        it 'adds the data to the events' do
+          event_data = {
             'NAME1' => 'VALUE1'
           }
         end
       end
 
-      describe 'when there are multiple event config items' do
+      describe 'when there are multiple event data items' do
         before(:each) do
           args = default_args.dup
-          args << '--event-config'
+          args << '--event-data'
           args << 'NAME1=VALUE1'
-          args << '--event-config'
+          args << '--event-data'
           args << 'NAME2=VALUE2'
           check_cucumber = CheckCucumber.new(args)
           expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
@@ -564,18 +564,18 @@ describe CheckCucumber do
           end
         end
 
-        it 'adds the config to the events' do
-          event_config = {
+        it 'adds the data to the events' do
+          event_data = {
             'NAME1' => 'VALUE1',
             'NAME2' => 'VALUE2'
           }
         end
       end
 
-      describe 'when an event config item is an integer' do
+      describe 'when an event data item is an integer' do
         before(:each) do
           args = default_args.dup
-          args << '--event-config'
+          args << '--event-data'
           args << 'NAME1=123'
           check_cucumber = CheckCucumber.new(args)
           expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
@@ -583,17 +583,17 @@ describe CheckCucumber do
           end
         end
 
-        it 'adds the config to the events' do
-          event_config = {
+        it 'adds the data to the events' do
+          event_data = {
             'NAME1' => 123
           }
         end
       end
 
-      describe 'when an event config item is a float' do
+      describe 'when an event data item is a float' do
         before(:each) do
           args = default_args.dup
-          args << '--event-config'
+          args << '--event-data'
           args << 'NAME1=12.3'
           check_cucumber = CheckCucumber.new(args)
           expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
@@ -601,17 +601,17 @@ describe CheckCucumber do
           end
         end
 
-        it 'adds the config to the events' do
-          event_config = {
+        it 'adds the data to the events' do
+          event_data = {
             'NAME1' => 12.3
           }
         end
       end
 
-      describe 'when an event config item is a boolean and it is true' do
+      describe 'when an event data item is a boolean and it is true' do
         before(:each) do
           args = default_args.dup
-          args << '--event-config'
+          args << '--event-data'
           args << 'NAME1=true'
           check_cucumber = CheckCucumber.new(args)
           expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
@@ -619,17 +619,17 @@ describe CheckCucumber do
           end
         end
 
-        it 'adds the config to the events' do
-          event_config = {
+        it 'adds the data to the events' do
+          event_data = {
             'NAME1' => true
           }
         end
       end
 
-      describe 'when an event config item is a boolean and it is false' do
+      describe 'when an event data item is a boolean and it is false' do
         before(:each) do
           args = default_args.dup
-          args << '--event-config'
+          args << '--event-data'
           args << 'NAME1=false'
           check_cucumber = CheckCucumber.new(args)
           expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
@@ -637,8 +637,8 @@ describe CheckCucumber do
           end
         end
 
-        it 'adds the config to the events' do
-          event_config = {
+        it 'adds the data to the events' do
+          event_data = {
             'NAME1' => false
           }
         end
@@ -646,9 +646,9 @@ describe CheckCucumber do
 
       after(:each) do
         sensu_events = []
-        sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report, :event_config => event_config)
+        sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report, :event_data => event_data)
         sensu_events << generate_metric_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
-        sensu_events << generate_sensu_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report, :event_config => event_config)
+        sensu_events << generate_sensu_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report, :event_data => event_data)
         sensu_events << generate_metric_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
         expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
           []
@@ -1361,8 +1361,8 @@ def generate_sensu_event(options = {})
         end
       end
 
-      if options.has_key?(:event_config)
-        options[:event_config].each do |key, value|
+      if options.has_key?(:event_data)
+        options[:event_data].each do |key, value|
           sensu_event[key] = value
         end
       end
