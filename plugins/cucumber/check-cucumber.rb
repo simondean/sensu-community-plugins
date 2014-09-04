@@ -244,6 +244,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   def remove_attachments_from_scenario(scenario)
     Array(scenario[:steps]).each do |step|
       step[:embeddings] = [] if step.has_key?(:embeddings)
+      step[:result][:embeddings] = [] if step.has_key?(:result) && step[:result].has_key?(:embeddings)
     end
   end
 
