@@ -973,61 +973,6 @@ describe CheckCucumber do
       check_cucumber.remove_attachments_from_scenario(scenario)
       expect(scenario[:steps][0]).to_not include(:embeddings)
     end
-
-    describe 'when the attachments are mistakenly placed under the results and not directly under the step' do
-      it 'replaces the attachments of a step with an empty array' do
-        scenario = {
-          :steps => [
-            {
-              :result => {
-                :embeddings => [{}]
-              }
-            }
-          ]
-        }
-        check_cucumber.remove_attachments_from_scenario(scenario)
-        expect(scenario[:steps][0][:result][:embeddings]).to be_empty
-      end
-
-      it 'replaces the attachments of multiple steps with empty arrays' do
-        scenario = {
-          :steps => [
-            {
-              :result => {
-                :embeddings => [{}]
-              }
-            },
-            {
-              :result => {
-                :embeddings => [{}]
-              }
-            }
-          ]
-        }
-        check_cucumber.remove_attachments_from_scenario(scenario)
-        expect(scenario[:steps][0][:result][:embeddings]).to be_empty
-        expect(scenario[:steps][1][:result][:embeddings]).to be_empty
-      end
-
-      it 'does not replace the attachments of a step with no attachments' do
-        scenario = {
-          :steps => [
-            {
-              :result => {}
-            }
-          ]
-        }
-        check_cucumber.remove_attachments_from_scenario(scenario)
-        expect(scenario[:steps][0][:result]).to_not include(:embeddings)
-      end
-
-      it 'does not error when a step has no result' do
-        scenario = {
-          :steps => [{}]
-        }
-        check_cucumber.remove_attachments_from_scenario(scenario)
-      end
-    end
   end
 
   describe 'generate_metrics_from_scenario()' do
