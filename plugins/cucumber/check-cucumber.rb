@@ -74,6 +74,11 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     :short => '-n NAME=VALUE',
     :long => '--env NAME=VALUE'
 
+  option :event_config,
+    :description => "Used to add custom config to the sensu events that are raised.  Can be specified more than once to set multiple config items",
+    :short => '-C NAME=VALUE',
+    :long => '--event-config NAME=VALUE'
+
   option :attachments,
     :description => "Specifies whether Cucumber attachments should be included in sensu events. " +
         "Cucumber attachments can be multi-megabyte if they include screenshots",
@@ -87,6 +92,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
 
   def parse_options(argv)
     env = {}
+    event_config = {}
 
     process_env_option = lambda do |config_value|
       name, value = config_value.split('=', 2)
@@ -94,7 +100,14 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       env
     end
 
+    process_event_config_option = lambda do |config_value|
+      name, value = config_value.split('=', 2)
+      event_config[name] = value
+      event_config
+    end
+
     options[:env][:proc] = process_env_option
+    options[:event_config][:proc] = process_event_config_option
 
     super(argv)
   end
@@ -216,6 +229,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     config[:timeout] ||= INFINITE_TIMEOUT
     config[:timeout] = Float(config[:timeout]) unless config[:timeout].nil?
     config[:env] ||= {}
+    config[:event_config] ||= {}
 
     config[:attachments] = 'true' if config[:attachments].nil?
 
@@ -392,6 +406,10 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       :output => scenario_output,
       :report => scenario_report
     }
+
+    config[:event_config].each do |key, value|
+      sensu_event[key] = value
+    end
 
     sensu_event
   end

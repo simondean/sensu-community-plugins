@@ -521,6 +521,69 @@ describe CheckCucumber do
         check_cucumber.run
       end
     end
+
+    describe 'when event config is specified' do
+      report = nil
+      event_config = nil
+
+      before(:each) do
+        report = []
+        report << generate_feature(:feature_index => 0, :scenarios => [{:step_statuses => :passed}])
+        report << generate_feature(:feature_index => 1, :scenarios => [{:step_statuses => :passed}])
+        Time.stub_chain(:now, :getutc, :to_i) {123}
+      end
+
+      describe 'when there is a single event config item' do
+        before(:each) do
+          args = default_args.dup
+          args << '--event-config'
+          args << 'NAME1=VALUE1'
+          check_cucumber = CheckCucumber.new(args)
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+            {:report => report.to_json, :exit_status => 0}
+          end
+        end
+
+        it 'adds the config to the events' do
+          event_config = {
+            'NAME1' => 'VALUE1'
+          }
+        end
+      end
+
+      describe 'when there are multiple event config items' do
+        before(:each) do
+          args = default_args.dup
+          args << '--event-config'
+          args << 'NAME1=VALUE1'
+          args << '--event-config'
+          args << 'NAME2=VALUE2'
+          check_cucumber = CheckCucumber.new(args)
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+            {:report => report.to_json, :exit_status => 0}
+          end
+        end
+
+        it 'adds the config to the events' do
+          event_config = {
+            'NAME1' => 'VALUE1',
+            'NAME2' => 'VALUE2'
+          }
+        end
+      end
+
+      after(:each) do
+        sensu_events = []
+        sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report, :event_config => event_config)
+        sensu_events << generate_metric_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report)
+        sensu_events << generate_sensu_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report, :event_config => event_config)
+        sensu_events << generate_metric_event(:status => :passed, :feature_index => 1, :scenario_index => 0, :report => report)
+        expect(check_cucumber).to receive('raise_sensu_events').with(sensu_events) do
+          []
+        end
+        check_cucumber.run
+      end
+    end
   end
 
   describe 'config_is_valid?' do
@@ -1278,6 +1341,12 @@ def generate_sensu_event(options = {})
           element[:steps].each do |step|
             step[:embeddings] = []
           end
+        end
+      end
+
+      if options.has_key?(:event_config)
+        options[:event_config].each do |key, value|
+          sensu_event[key] = value
         end
       end
   end
