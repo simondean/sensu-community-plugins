@@ -29,88 +29,33 @@ describe CheckCucumber do
       args = []
     end
 
-    it 'returns unknown if no name is specified' do
-      check_cucumber = CheckCucumber.new(args)
-      expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No name specified'))
-      check_cucumber.run
-    end
-
-    describe 'when the name is specified' do
+    describe 'when it checks the config' do
       before(:each) do
-        args << '--name'
-        args << 'example-name'
-      end
-
-      it 'returns unknown if no handler is specified' do
+        args = default_args.dup
         check_cucumber = CheckCucumber.new(args)
-        expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No handler specified'))
-        check_cucumber.run
       end
 
-      describe 'when the handler is specified' do
+      describe 'when the config is valid' do
         before(:each) do
-          args << '--handler'
-          args << 'example-handler'
+          expect(check_cucumber).to receive('config_is_valid?') {true}
         end
 
-        it 'returns unknown if no metric handler is specified' do
-          check_cucumber = CheckCucumber.new(args)
-          expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No metric handler specified'))
+        it 'executes Cucumber' do
+          expect(check_cucumber).to receive('execute_cucumber') do
+            {:report => '[]', :exit_status => 0}
+          end
           check_cucumber.run
         end
+      end
 
-        describe 'when the metric handler is specified' do
-          before(:each) do
-            args << '--metric-handler'
-            args << 'example-metric-handler'
-          end
+      describe 'when the config is invalid' do
+        before(:each) do
+          expect(check_cucumber).to receive('config_is_valid?') {false}
+        end
 
-          it 'returns unknown if no metric prefix is specified' do
-            check_cucumber = CheckCucumber.new(args)
-            expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No metric prefix specified'))
-            check_cucumber.run
-          end
-
-          describe 'when the metric prefix is specified' do
-            before(:each) do
-              args << '--metric-prefix'
-              args << 'example-metric-prefix'
-            end
-
-            it 'returns unknown if no cucumber command line is specified' do
-              check_cucumber = CheckCucumber.new(args)
-              expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No cucumber command line specified'))
-              check_cucumber.run
-            end
-
-            describe 'when the Cucumber command line is specified' do
-              before(:each) do
-                args << '--command'
-                args << 'cucumber-js features/'
-              end
-
-              it 'returns unknown if no working dir is specified' do
-                check_cucumber = CheckCucumber.new(args)
-                expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No working directory specified'))
-                check_cucumber.run
-              end
-
-              describe 'when the Cucumber command line is specified' do
-                before(:each) do
-                  args << '--working-dir'
-                  args << 'example-working-dir'
-                end
-
-                it 'returns unknown if the attachments argument is not boolean' do
-                  args << '--attachment'
-                  args << 'not-a-boolean'
-                  check_cucumber = CheckCucumber.new(args)
-                  expect(check_cucumber).to receive('unknown').with(generate_unknown_error('Attachments argument is not a valid boolean'))
-                  check_cucumber.run
-                end
-              end
-            end
-          end
+        it 'does not execute Cucumber' do
+          expect(check_cucumber).to_not receive('execute_cucumber')
+          check_cucumber.run
         end
       end
     end
@@ -400,7 +345,7 @@ describe CheckCucumber do
 
           describe 'when configured to include attachments in events' do
             before(:each) do
-              check_cucumber.config[:attachments] = true
+              check_cucumber.config[:attachments] = 'true'
             end
 
             it 'returns ok' do
@@ -419,7 +364,7 @@ describe CheckCucumber do
 
           describe 'when configured not to include attachments in events' do
             before(:each) do
-              check_cucumber.config[:attachments] = false
+              check_cucumber.config[:attachments] = 'false'
             end
 
             it 'returns ok' do
@@ -574,6 +519,131 @@ describe CheckCucumber do
 
       after(:each) do
         check_cucumber.run
+      end
+    end
+  end
+
+  describe 'config_is_valid?' do
+    args = nil
+
+    before(:each) do
+      args = []
+    end
+
+    it 'returns unknown if no name is specified' do
+      check_cucumber = CheckCucumber.new(args)
+      expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No name specified'))
+      check_cucumber.config_is_valid?
+    end
+
+    describe 'when the name is specified' do
+      before(:each) do
+        args << '--name'
+        args << 'example-name'
+      end
+
+      it 'returns unknown if no handler is specified' do
+        check_cucumber = CheckCucumber.new(args)
+        expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No handler specified'))
+        check_cucumber.config_is_valid?
+      end
+
+      describe 'when the handler is specified' do
+        before(:each) do
+          args << '--handler'
+          args << 'example-handler'
+        end
+
+        it 'returns unknown if no metric handler is specified' do
+          check_cucumber = CheckCucumber.new(args)
+          expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No metric handler specified'))
+          check_cucumber.config_is_valid?
+        end
+
+        describe 'when the metric handler is specified' do
+          before(:each) do
+            args << '--metric-handler'
+            args << 'example-metric-handler'
+          end
+
+          it 'returns unknown if no metric prefix is specified' do
+            check_cucumber = CheckCucumber.new(args)
+            expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No metric prefix specified'))
+            check_cucumber.config_is_valid?
+          end
+
+          describe 'when the metric prefix is specified' do
+            before(:each) do
+              args << '--metric-prefix'
+              args << 'example-metric-prefix'
+            end
+
+            it 'returns unknown if no cucumber command line is specified' do
+              check_cucumber = CheckCucumber.new(args)
+              expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No cucumber command line specified'))
+              check_cucumber.config_is_valid?
+            end
+
+            describe 'when the Cucumber command line is specified' do
+              before(:each) do
+                args << '--command'
+                args << 'cucumber-js features/'
+              end
+
+              it 'returns unknown if no working dir is specified' do
+                check_cucumber = CheckCucumber.new(args)
+                expect(check_cucumber).to receive('unknown').with(generate_unknown_error('No working directory specified'))
+                check_cucumber.config_is_valid?
+              end
+
+              describe 'when the Cucumber command line is specified' do
+                before(:each) do
+                  args << '--working-dir'
+                  args << 'example-working-dir'
+                  check_cucumber.stub(:send_sensu_event) {}
+                end
+
+                describe 'when attachments argument is not specified' do
+                  it 'defaults the argument to true' do
+                    check_cucumber = CheckCucumber.new(args)
+                    check_cucumber.config_is_valid?
+                    expect(check_cucumber.config[:attachments]).to be true
+                  end
+                end
+
+                describe 'when attachments argument is set to true' do
+                  it 'converts the argument value from a string to a boolean' do
+                    args << '--attachment'
+                    args << 'true'
+                    check_cucumber = CheckCucumber.new(args)
+                    check_cucumber.config_is_valid?
+                    expect(check_cucumber.config[:attachments]).to be true
+                  end
+                end
+
+                describe 'when attachments argument is set to false' do
+                  it 'converts the argument value from a string to a boolean' do
+                    args << '--attachment'
+                    args << 'false'
+                    check_cucumber = CheckCucumber.new(args)
+                    check_cucumber.config_is_valid?
+                    expect(check_cucumber.config[:attachments]).to be false
+                  end
+                end
+
+                describe 'when attachments argument is not boolean' do
+                  it 'returns unknown' do
+                    args << '--attachment'
+                    args << 'not-a-boolean'
+                    check_cucumber = CheckCucumber.new(args)
+                    expect(check_cucumber).to receive('unknown').with(generate_unknown_error('Attachments argument is not a valid boolean'))
+                    check_cucumber.config_is_valid?
+                  end
+                end
+              end
+            end
+          end
+        end
       end
     end
   end

@@ -101,7 +101,7 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
   end
 
   def run
-    return unless config_is_valid
+    return unless config_is_valid?
 
     result = nil
 
@@ -181,6 +181,64 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
       when :unknown
         unknown data
     end
+  end
+
+  def config_is_valid?
+    if config[:name].nil?
+      unknown_error 'No name specified'
+      return false
+    end
+
+    if config[:handler].nil?
+      unknown_error 'No handler specified'
+      return false
+    end
+
+    if config[:metric_handler].nil?
+      unknown_error 'No metric handler specified'
+      return false
+    end
+
+    if config[:metric_prefix].nil?
+      unknown_error 'No metric prefix specified'
+      return false
+    end
+
+    if config[:command].nil?
+      unknown_error 'No cucumber command line specified'
+      return false
+    end
+
+    if config[:working_dir].nil?
+      unknown_error 'No working directory specified'
+      return false
+    end
+
+    config[:timeout] ||= INFINITE_TIMEOUT
+    config[:timeout] = Float(config[:timeout]) unless config[:timeout].nil?
+    config[:env] ||= {}
+
+    config[:attachments] = 'true' if config[:attachments].nil?
+
+    case config[:attachments]
+      when 'true'
+        config[:attachments] = true
+      when 'false'
+        config[:attachments] = false
+      else
+        unknown_error 'Attachments argument is not a valid boolean'
+        return false
+    end
+
+    #if config[:attachments].nil?
+
+
+    #config[:attachments] = 'true'
+
+    #unless [TrueClass, FalseClass].include? config[:attachments].class
+    #end
+
+    true
   end
 
   def remove_attachments_from_scenario(scenario)
@@ -315,51 +373,6 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     end
 
     socket.close
-  end
-
-  def config_is_valid
-    if config[:name].nil?
-      unknown_error 'No name specified'
-      return false
-    end
-
-    if config[:handler].nil?
-      unknown_error 'No handler specified'
-      return false
-    end
-
-    if config[:metric_handler].nil?
-      unknown_error 'No metric handler specified'
-      return false
-    end
-
-    if config[:metric_prefix].nil?
-      unknown_error 'No metric prefix specified'
-      return false
-    end
-
-    if config[:command].nil?
-      unknown_error 'No cucumber command line specified'
-      return false
-    end
-
-    if config[:working_dir].nil?
-      unknown_error 'No working directory specified'
-      return false
-    end
-
-    config[:timeout] ||= INFINITE_TIMEOUT
-    config[:timeout] = Float(config[:timeout]) unless config[:timeout].nil?
-    config[:env] ||= {}
-
-    config[:attachments] = true if config[:attachments].nil?
-
-    unless [TrueClass, FalseClass].include? config[:attachments].class
-      unknown_error 'Attachments argument is not a valid boolean'
-      return false
-    end
-
-    true
   end
 
   def generate_sensu_event(event_name, feature, scenario, scenario_status)
