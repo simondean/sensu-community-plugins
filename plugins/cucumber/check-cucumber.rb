@@ -230,14 +230,6 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
         return false
     end
 
-    #if config[:attachments].nil?
-
-
-    #config[:attachments] = 'true'
-
-    #unless [TrueClass, FalseClass].include? config[:attachments].class
-    #end
-
     true
   end
 
