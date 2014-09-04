@@ -572,6 +572,78 @@ describe CheckCucumber do
         end
       end
 
+      describe 'when an event config item is an integer' do
+        before(:each) do
+          args = default_args.dup
+          args << '--event-config'
+          args << 'NAME1=123'
+          check_cucumber = CheckCucumber.new(args)
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+            {:report => report.to_json, :exit_status => 0}
+          end
+        end
+
+        it 'adds the config to the events' do
+          event_config = {
+            'NAME1' => 123
+          }
+        end
+      end
+
+      describe 'when an event config item is a float' do
+        before(:each) do
+          args = default_args.dup
+          args << '--event-config'
+          args << 'NAME1=12.3'
+          check_cucumber = CheckCucumber.new(args)
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+            {:report => report.to_json, :exit_status => 0}
+          end
+        end
+
+        it 'adds the config to the events' do
+          event_config = {
+            'NAME1' => 12.3
+          }
+        end
+      end
+
+      describe 'when an event config item is a boolean and it is true' do
+        before(:each) do
+          args = default_args.dup
+          args << '--event-config'
+          args << 'NAME1=true'
+          check_cucumber = CheckCucumber.new(args)
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+            {:report => report.to_json, :exit_status => 0}
+          end
+        end
+
+        it 'adds the config to the events' do
+          event_config = {
+            'NAME1' => true
+          }
+        end
+      end
+
+      describe 'when an event config item is a boolean and it is false' do
+        before(:each) do
+          args = default_args.dup
+          args << '--event-config'
+          args << 'NAME1=false'
+          check_cucumber = CheckCucumber.new(args)
+          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+            {:report => report.to_json, :exit_status => 0}
+          end
+        end
+
+        it 'adds the config to the events' do
+          event_config = {
+            'NAME1' => false
+          }
+        end
+      end
+
       after(:each) do
         sensu_events = []
         sensu_events << generate_sensu_event(:status => :passed, :feature_index => 0, :scenario_index => 0, :report => report, :event_config => event_config)

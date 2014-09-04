@@ -408,6 +408,15 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     }
 
     config[:event_config].each do |key, value|
+      if value =~ /^[0-9]+$/
+        value = Integer(value)
+      elsif value =~ /^[0-9]+.[0-9]+$/
+        value = Float(value)
+      elsif value == 'true'
+        value = true
+      elsif value == 'false'
+        value = false
+      end
       sensu_event[key] = value
     end
 
