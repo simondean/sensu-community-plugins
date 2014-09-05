@@ -407,9 +407,9 @@ class CheckCucumber < Sensu::Plugin::Check::CLI
     }
 
     config[:event_data].each do |key, value|
-      if value =~ /^[0-9]+$/
+      if value =~ /^\A-?[0-9]+\z/
         value = Integer(value)
-      elsif value =~ /^[0-9]+.[0-9]+$/
+      elsif value =~ /^\A-?[0-9]+\.[0-9]+\z/
         value = Float(value)
       elsif value == 'true'
         value = true

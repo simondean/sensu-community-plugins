@@ -572,75 +572,103 @@ describe CheckCucumber do
         end
       end
 
-      describe 'when an event data item is an integer' do
-        before(:each) do
-          args = default_args.dup
-          args << '--event-data'
-          args << 'NAME1=123'
-          check_cucumber = CheckCucumber.new(args)
-          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
-            {:report => report.to_json, :exit_status => 0}
+      {'123' => 123, '-123' => -123}.each do |string_value, integer_value|
+        describe "when an event data item is an integer and its value is #{string_value}" do
+          before(:each) do
+            args = default_args.dup
+            args << '--event-data'
+            args << "NAME1=#{string_value}"
+            check_cucumber = CheckCucumber.new(args)
+            expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+              {:report => report.to_json, :exit_status => 0}
+            end
           end
-        end
 
-        it 'adds the data to the events' do
-          event_data = {
-            'NAME1' => 123
-          }
+          it 'adds the data to the events as an integer' do
+            event_data = {
+              'NAME1' => integer_value
+            }
+          end
         end
       end
 
-      describe 'when an event data item is a float' do
-        before(:each) do
-          args = default_args.dup
-          args << '--event-data'
-          args << 'NAME1=12.3'
-          check_cucumber = CheckCucumber.new(args)
-          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
-            {:report => report.to_json, :exit_status => 0}
+      ["123\ntext", "text\n123", "text\n123\ntext"].each do |string_value|
+        describe "when an event data item is almost an integer and its value is #{string_value.gsub("\n", "\\n")}" do
+          before(:each) do
+            args = default_args.dup
+            args << '--event-data'
+            args << "NAME1=#{string_value}"
+            check_cucumber = CheckCucumber.new(args)
+            expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+              {:report => report.to_json, :exit_status => 0}
+            end
           end
-        end
 
-        it 'adds the data to the events' do
-          event_data = {
-            'NAME1' => 12.3
-          }
+          it 'adds the data to the events as a string' do
+            event_data = {
+              'NAME1' => string_value
+            }
+          end
         end
       end
 
-      describe 'when an event data item is a boolean and it is true' do
-        before(:each) do
-          args = default_args.dup
-          args << '--event-data'
-          args << 'NAME1=true'
-          check_cucumber = CheckCucumber.new(args)
-          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
-            {:report => report.to_json, :exit_status => 0}
+      {'12.3' => 12.3, '-12.3' => -12.3, '1.23' => 1.23, '-1.23' => -1.23}.each do |string_value, float_value|
+        describe "when an event data item is a float and its value is #{string_value}" do
+          before(:each) do
+            args = default_args.dup
+            args << '--event-data'
+            args << "NAME1=#{string_value}"
+            check_cucumber = CheckCucumber.new(args)
+            expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+              {:report => report.to_json, :exit_status => 0}
+            end
           end
-        end
 
-        it 'adds the data to the events' do
-          event_data = {
-            'NAME1' => true
-          }
+          it 'adds the data to the events as a float' do
+            event_data = {
+              'NAME1' => float_value
+            }
+          end
         end
       end
 
-      describe 'when an event data item is a boolean and it is false' do
-        before(:each) do
-          args = default_args.dup
-          args << '--event-data'
-          args << 'NAME1=false'
-          check_cucumber = CheckCucumber.new(args)
-          expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
-            {:report => report.to_json, :exit_status => 0}
+      ["12.3\ntext", "text\n12.3", "text\n12.3\ntext", '1a23'].each do |string_value|
+        describe "when an event data item is almost a float and its value is #{string_value.gsub("\n", "\\n")}" do
+          before(:each) do
+            args = default_args.dup
+            args << '--event-data'
+            args << "NAME1=#{string_value}"
+            check_cucumber = CheckCucumber.new(args)
+            expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+              {:report => report.to_json, :exit_status => 0}
+            end
+          end
+
+          it 'adds the data to the events as a string' do
+            event_data = {
+              'NAME1' => string_value
+            }
           end
         end
+      end
 
-        it 'adds the data to the events' do
-          event_data = {
-            'NAME1' => false
-          }
+      {'true' => true, 'false' => false}.each do |string_value, boolean_value|
+        describe "when an event data item is a boolean and its value is #{string_value}" do
+          before(:each) do
+            args = default_args.dup
+            args << '--event-data'
+            args << "NAME1=#{string_value}"
+            check_cucumber = CheckCucumber.new(args)
+            expect(check_cucumber).to receive('execute_cucumber').with({}, 'cucumber-js features/', 'example-working-dir', 0.0) do
+              {:report => report.to_json, :exit_status => 0}
+            end
+          end
+
+          it 'adds the data to the events as a boolean' do
+            event_data = {
+              'NAME1' => boolean_value
+            }
+          end
         end
       end
 
